@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd sparkbyte-v2 && npm install && npm run build",
+  "outputDirectory": "sparkbyte-v2/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

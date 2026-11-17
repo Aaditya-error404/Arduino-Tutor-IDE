@@ -33,6 +33,10 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
+# Legacy & Scratch Archives
+_legacy_v1/
+scratch/
+
 # OS & Editor
 Thumbs.db
 .DS_Store
