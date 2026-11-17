@@ -1,0 +1,27 @@
+{
+  "test_results": {
+    "Test 1 (Dock Tab Switching)": {
+      "pass": true,
+      "detail": "Coach Tab=True, Serial Tab=True, Scope Tab=True"
+    },
+    "Test 2 (Deterministic Diagnostic Inspector)": {
+      "pass": true,
+      "detail": "Missing Semi=True, Pin Mismatch=True, Threshold Mismatch=True"
+    },
+    "Test 3 (Pedagogical Quick Chips)": {
+      "pass": true,
+      "detail": "Line-by-Line=True, Experiments=True, Hindi=True"
+    },
+    "Test 4 (Settings Popover & BYOK UI)": {
+      "pass": true,
+      "detail": "Title=True, Provider Selection=True, Socratic Mode=True"
+    },
+    "Test 5 (Console Cleanliness)": {
+      "pass": true,
+      "detail": "Errors=0, Exceptions=0"
+    }
+  },
+  "all_passed": true,
+  "console_errors": [],
+  "page_errors": []
+}

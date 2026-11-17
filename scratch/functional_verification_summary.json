@@ -1,0 +1,159 @@
+{
+  "test_results": {
+    "Test 1A (Button if/else Branching)": {
+      "pass": true,
+      "detail": "Released LED=False (Expected False), Pressed LED=True (Expected True)"
+    },
+    "Test 1B (LDR Threshold Mutation)": {
+      "pass": true,
+      "detail": "At 600 Lux: Threshold 400 -> LED=False (False), Threshold 900 -> LED=True (True)"
+    },
+    "Test 2A (Servo for-Loop Sweep)": {
+      "pass": true,
+      "detail": "Sweep reached 9 distinct angles (0\u00b0 to 120\u00b0), Sample: [0, 15, 30, 45, 60, 75]"
+    },
+    "Test 2B (Potentiometer map -> Servo)": {
+      "pass": true,
+      "detail": "potVal 0 -> 0\u00b0, potVal 512 -> 90\u00b0, potVal 1023 -> 180\u00b0"
+    },
+    "Test 3A (RGB Output Coupling)": {
+      "pass": true,
+      "detail": "Red=255 (Expected 255), Green=128 (Expected 128), Blue=40 (Expected 40)"
+    },
+    "Test 3B (LCD Text Coupling)": {
+      "pass": true,
+      "detail": "Row 0='SparkByte v2', Row 1='Aaditya Joshi'"
+    },
+    "Test 4A (Motor Function Calls)": {
+      "pass": true,
+      "detail": "Forward Speed=225 (Expected 225), Direction=FORWARD (Expected FORWARD)"
+    },
+    "Test 4B (OLED Framebuffer)": {
+      "pass": true,
+      "detail": "Pixel (0,0)=True, Pixel (120,60)=True"
+    },
+    "Test 4C (OpenSCAD CAD Solid)": {
+      "pass": true,
+      "detail": "CAD Model Dims: 55x35x25 (Expected 55x35x25)"
+    },
+    "Test 4D (3D Slicer G-Code)": {
+      "pass": true,
+      "detail": "Nozzle Position: X=125 Y=85 (Expected 125, 85)"
+    }
+  },
+  "lab_sweep": {
+    "led": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "servo": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "button": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "pot": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "buzzer": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "cad": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "dmm": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "ldr": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "rgb": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "temp": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "sonar": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "ir": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "slicer": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "dht": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "gas": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "lcd": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "oled": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "soil": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "motor": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "imu": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "rfid": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    },
+    "iot": {
+      "loaded": true,
+      "running": true,
+      "stepped": true
+    }
+  },
+  "console_errors": [],
+  "page_errors": [],
+  "all_passed": true
+}

@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Monaco Editor Live Line Stepping Highlight Decorations */
+.monaco-executing-line {
+  background-color: rgba(101, 163, 13, 0.18) !important;
+  border-left: 3px solid #65A30D !important;
+}
+
+.monaco-executing-gutter {
+  background-color: #65A30D !important;
+  width: 4px !important;
+}
+
+.monaco-executing-glyph {
+  border-left: 3px solid #65A30D !important;
+}

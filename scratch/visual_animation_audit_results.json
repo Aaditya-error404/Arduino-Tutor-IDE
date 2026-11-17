@@ -1,0 +1,200 @@
+[
+  {
+    "id": "led",
+    "name": "LED Blink & PWM Fader",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 2
+  },
+  {
+    "id": "servo",
+    "name": "SG90 Micro Servo",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 0
+  },
+  {
+    "id": "button",
+    "name": "Tactile Pushbutton",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 0
+  },
+  {
+    "id": "pot",
+    "name": "Potentiometer Wiper",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 5
+  },
+  {
+    "id": "buzzer",
+    "name": "Piezo Buzzer Siren",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "Piezo buzzer lacks live acoustic compression wave arcs",
+    "stepIndex": 3
+  },
+  {
+    "id": "cad",
+    "name": "3D Parametric CAD CSG",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 0
+  },
+  {
+    "id": "dmm",
+    "name": "Digital Multimeter",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "Multimeter lacks live electron current flow along probes",
+    "stepIndex": 0
+  },
+  {
+    "id": "ldr",
+    "name": "LDR Photoresistor Nightlight",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 5
+  },
+  {
+    "id": "rgb",
+    "name": "Multi-Channel RGB LED",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 5
+  },
+  {
+    "id": "temp",
+    "name": "TMP36 Temperature Fan",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 4
+  },
+  {
+    "id": "sonar",
+    "name": "HC-SR04 Ultrasonic Radar",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "HC-SR04 lacks live pulsing ultrasonic acoustic wave rings",
+    "stepIndex": 8
+  },
+  {
+    "id": "ir",
+    "name": "TCRT5000 IR Line Tracker",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "TCRT5000 lacks live 940nm optical reflection beam path",
+    "stepIndex": 11
+  },
+  {
+    "id": "slicer",
+    "name": "3D Slicer Toolpath",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 0
+  },
+  {
+    "id": "dht",
+    "name": "DHT11 Climate Station",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 0
+  },
+  {
+    "id": "gas",
+    "name": "MQ-2 Gas Leak Alarm",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 1
+  },
+  {
+    "id": "lcd",
+    "name": "16x2 I2C Display",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 1
+  },
+  {
+    "id": "oled",
+    "name": "SSD1306 128x64 OLED",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": false,
+    "staticDetails": "",
+    "stepIndex": 20
+  },
+  {
+    "id": "soil",
+    "name": "Smart Soil Irrigation Pump",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "Soil probe lacks live flowing water droplet particles / soil absorption ripples",
+    "stepIndex": 9
+  },
+  {
+    "id": "motor",
+    "name": "L298N Dual H-Bridge Rover",
+    "sliderBypass": true,
+    "bypassDetails": "Motor spins while simulation is stopped",
+    "staticBug": true,
+    "staticDetails": "Rover wheels lack genuine rolling tread / current flow animation",
+    "stepIndex": 4
+  },
+  {
+    "id": "imu",
+    "name": "MPU-6050 6-DoF Gimbal",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "MPU-6050 lacks live Primary Flight Display (PFD) artificial horizon & gyro vectors",
+    "stepIndex": 4
+  },
+  {
+    "id": "rfid",
+    "name": "RC522 RFID Access Latch",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "RC522 reader lacks 13.56MHz resonant magnetic induction ripple waves",
+    "stepIndex": 0
+  },
+  {
+    "id": "iot",
+    "name": "ESP32 MQTT Cloud Telemetry",
+    "sliderBypass": false,
+    "bypassDetails": "",
+    "staticBug": true,
+    "staticDetails": "ESP32 lacks live Wi-Fi transmission burst pulses & MQTT telemetry stream visual",
+    "stepIndex": 0
+  }
+]

@@ -1,0 +1,63 @@
+{
+  "total_findings": 6,
+  "findings": [
+    {
+      "lab": "temp",
+      "category": "Sensor Logic",
+      "severity": "HIGH",
+      "summary": "Fan does not activate when temperature exceeds 30\u00b0C in Lesson 4",
+      "detail": "Set temperatureC=45, but fanActive remains False. In temp lesson 4, let's inspect what pin controls the fan and what threshold is set."
+    },
+    {
+      "lab": "ir",
+      "category": "Sensor Logic",
+      "severity": "MEDIUM",
+      "summary": "IR sensor surface change between White and Black does not alter LED indicator in Lesson 3",
+      "detail": "White ledOn: False, Black ledOn: False"
+    },
+    {
+      "lab": "gas",
+      "category": "Sensor Logic",
+      "severity": "HIGH",
+      "summary": "MQ-2 gas alarm does not trigger buzzerActive when gas PPM is 650 in Lesson 4",
+      "detail": "gasPpm=650, buzzerActive=False, ledOn=False"
+    },
+    {
+      "lab": "soil",
+      "category": "Sensor Logic",
+      "severity": "HIGH",
+      "summary": "Irrigation relay does not activate when soil moisture drops to 15% in Lesson 4",
+      "detail": "soilMoisturePct=15, relayActive=False, ledOn=False"
+    },
+    {
+      "lab": "rfid",
+      "category": "Security Logic",
+      "severity": "HIGH",
+      "summary": "Unauthorized RFID tag '99 00 AA FF' unlocked the door deadbolt",
+      "detail": "Expected rfidAuthorized=false, but got true. Check UID byte comparison in compiler.ts and Lesson 3 code."
+    },
+    {
+      "lab": "led",
+      "category": "Pin Assignment",
+      "severity": "MEDIUM",
+      "summary": "Editing LED pin from 13 to 12 did not illuminate the LED or set pinStates[12]",
+      "detail": "pinStates[12] is False. In useWorkbenchStore.ts, ledOn only responds to pin 13 or hw.ledPin."
+    }
+  ],
+  "page_errors": [],
+  "console_logs": [],
+  "layout_1920": {
+    "vw": 1902,
+    "vh": 928,
+    "docWidth": 1902,
+    "bodyWidth": 1902,
+    "hasHOverflow": false
+  },
+  "layout_1366": {
+    "vw": 1366,
+    "vh": 768,
+    "docWidth": 1366,
+    "bodyWidth": 1366,
+    "hasHOverflow": false
+  }
+}

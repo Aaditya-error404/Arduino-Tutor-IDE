@@ -1,0 +1,1437 @@
+[
+  {
+    "id": "led",
+    "name": "LED Digital Blink Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: The Brain & The Routine",
+        "rawCppLines": 6,
+        "setupCount": 1,
+        "loopCount": 1,
+        "parsedTypes": [
+          "header"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     // Code here runs ONCE when you press reset or plug USB in } void loop() {     // Code here runs OVER"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: Speaking to the Pins",
+        "rawCppLines": 6,
+        "setupCount": 2,
+        "loopCount": 1,
+        "parsedTypes": [
+          "header",
+          "pinMode"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     pinMode(13, OUTPUT); } void loop() {     // Pin 13 is configured and ready to drive our LED! }"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: The Light Switch & The Clock",
+        "rawCppLines": 9,
+        "setupCount": 2,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(13, OUTPUT); } void loop() {     digitalWrite(13, HIGH);     delay(1000);     digitalWrite(13"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: The Inventor's Sandbox",
+        "rawCppLines": 13,
+        "setupCount": 2,
+        "loopCount": 9,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(13, OUTPUT); } void loop() {     digitalWrite(13, HIGH);     delay(300);     digitalWrite(13,"
+      }
+    ]
+  },
+  {
+    "id": "servo",
+    "name": "SG90 Micro Servo Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: The Robot Muscle & The Library",
+        "rawCppLines": 8,
+        "setupCount": 1,
+        "loopCount": 3,
+        "parsedTypes": [
+          "header",
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "#include <Servo.h> Servo myServo;  void setup() {     // myServo is declared and ready for pin attachment! } void loop()"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: The 3 Wires & Attaching Pin 9",
+        "rawCppLines": 8,
+        "setupCount": 2,
+        "loopCount": 3,
+        "parsedTypes": [
+          "header",
+          "servoAttach",
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "#include <Servo.h> Servo myServo;  void setup() {     myServo.attach(9); } void loop() {     // Pin 9 is actively transm"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: The Steering Wheel & Angle Commands",
+        "rawCppLines": 11,
+        "setupCount": 2,
+        "loopCount": 7,
+        "parsedTypes": [
+          "header",
+          "servoAttach",
+          "other",
+          "servoWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Servo.h> Servo myServo;  void setup() {     myServo.attach(9); } void loop() {     myServo.write(90);     dela"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: The 180° Sweep Dance & Sandbox",
+        "rawCppLines": 16,
+        "setupCount": 2,
+        "loopCount": 10,
+        "parsedTypes": [
+          "header",
+          "servoAttach",
+          "other",
+          "servoWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Servo.h> Servo myServo; int pos = 0;  void setup() {     myServo.attach(9); } void loop() {     for (pos = 0; "
+      }
+    ]
+  },
+  {
+    "id": "button",
+    "name": "Tactile Pushbutton Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: Inputs vs. Outputs (Sensors & Actors)",
+        "rawCppLines": 8,
+        "setupCount": 3,
+        "loopCount": 3,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(2, INPUT_PULLUP);     pinMode(13, OUTPUT); } void loop() {     int buttonState = digitalRead("
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: Floating Pins & INPUT_PULLUP",
+        "rawCppLines": 7,
+        "setupCount": 2,
+        "loopCount": 3,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     pinMode(2, INPUT_PULLUP); } void loop() {     int state = digitalRead(2);     delay(50); }"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: The Doorbell Logic (if / else)",
+        "rawCppLines": 12,
+        "setupCount": 3,
+        "loopCount": 6,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(2, INPUT_PULLUP);     pinMode(13, OUTPUT); } void loop() {     int button = digitalRead(2);  "
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: The Smart Light Toggle Switch (State Memory)",
+        "rawCppLines": 12,
+        "setupCount": 3,
+        "loopCount": 6,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "bool ledState = false; void setup() {     pinMode(2, INPUT_PULLUP);     pinMode(13, OUTPUT); } void loop() {     if (dig"
+      }
+    ]
+  },
+  {
+    "id": "pot",
+    "name": "Potentiometer Analog Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: Digital Switch vs. Analog Dial",
+        "rawCppLines": 8,
+        "setupCount": 2,
+        "loopCount": 4,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     Serial.begin(9600); } void loop() {     int val = analogRead(A0);     Serial.println(val);     delay("
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: The 3-Pin Potentiometer & Pin A0",
+        "rawCppLines": 9,
+        "setupCount": 2,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     Serial.begin(9600); } void loop() {     int raw = analogRead(A0);     float volts = (raw * 5.0) / 102"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: The map() Function (Number Translator)",
+        "rawCppLines": 11,
+        "setupCount": 2,
+        "loopCount": 7,
+        "parsedTypes": [
+          "header",
+          "servoAttach",
+          "other",
+          "servoWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Servo.h> Servo myServo;  void setup() {     myServo.attach(9); } void loop() {     int val = analogRead(A0);  "
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: Robotic Steering Studio (Knob-to-Servo Live)",
+        "rawCppLines": 13,
+        "setupCount": 3,
+        "loopCount": 8,
+        "parsedTypes": [
+          "header",
+          "servoAttach",
+          "other",
+          "servoWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Servo.h> Servo steeringServo; var int potPin = A0;  void setup() {     steeringServo.attach(9);     Serial.beg"
+      }
+    ]
+  },
+  {
+    "id": "buzzer",
+    "name": "Piezo Buzzer & Tone Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: Sound Waves & Frequency (Hz)",
+        "rawCppLines": 9,
+        "setupCount": 1,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "tone",
+          "delay",
+          "noTone"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     // Pin 8 will automatically generate square waves! } void loop() {     tone(8, 440);     delay(1000);"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: The Emergency Alarm Siren (Alternating Tones)",
+        "rawCppLines": 9,
+        "setupCount": 1,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "tone",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     // Hardware timer initialized } void loop() {     tone(8, 650);     delay(350);     tone(8, 950);    "
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: Musical Melodies & Note Arrays",
+        "rawCppLines": 10,
+        "setupCount": 4,
+        "loopCount": 2,
+        "parsedTypes": [
+          "header",
+          "other",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "int melody[] = { 262, 294, 330, 349, 392, 440, 494, 523 }; void setup() {     for (int i = 0; i < 8; i++) {         tone"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: The 8-Key Synthesizer Studio",
+        "rawCppLines": 12,
+        "setupCount": 2,
+        "loopCount": 6,
+        "parsedTypes": [
+          "header",
+          "other",
+          "noTone"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "var int buzzerPin = 8; void setup() {     Serial.begin(9600); } void loop() {     // Real-time keyboard input listener  "
+      }
+    ]
+  },
+  {
+    "id": "cad",
+    "name": "Parametric 3D CAD Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 45: The 3D World & The Workplane",
+        "rawCppLines": 7,
+        "setupCount": 0,
+        "loopCount": 4,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// OpenSCAD / Procedural C++ CAD Modeling $fn = 64; // High-resolution polygon facets  module createSolidBox(x, y, z) { "
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 46: The Magic of Holes & CSG Booleans",
+        "rawCppLines": 7,
+        "setupCount": 0,
+        "loopCount": 3,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// CSG Boolean Difference in Procedural CAD difference() {   // Positive Solid: Base Box (20x20x20mm)   cube([20, 20, 20"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 47: Precision Alignment & Ruler Tools",
+        "rawCppLines": 7,
+        "setupCount": 0,
+        "loopCount": 3,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Parametric Alignment Matrix in C++ CAD struct Vec3D { float x, y, z; };  Vec3D alignToCenter(var Vec3D& parent, var V"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 48: Robot Bracket Engineering: Tolerances & Wall Thickness",
+        "rawCppLines": 12,
+        "setupCount": 0,
+        "loopCount": 7,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Parametric SG90 Servo Bracket in C++ CAD var float TOLERANCE = 0.4; // 3D print thermal compensation var float WALL_T"
+      }
+    ]
+  },
+  {
+    "id": "dmm",
+    "name": "Digital Multimeter Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 49: DC Voltage Drop & The Water Pressure Metaphor",
+        "rawCppLines": 10,
+        "setupCount": 2,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Measuring Voltage with Arduino ADC (Pin A0) void setup() {   Serial.begin(9600); // Telemetry stream }  void loop() {"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 50: Resistance, Ohm's Law & 4-Band Color Codes",
+        "rawCppLines": 8,
+        "setupCount": 0,
+        "loopCount": 6,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Ohm's Law in Software: I = V / R var float V_SUPPLY = 5.0; // 5V USB Rail var float V_LED = 2.05;   // Red LED forwar"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 51: The Continuity Buzzer: Sniffing Short Circuits",
+        "rawCppLines": 10,
+        "setupCount": 0,
+        "loopCount": 6,
+        "parsedTypes": [
+          "other",
+          "pinMode",
+          "tone"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// Continuity Verification in Hardware Test Script bool checkBusContinuity(int pinInput) {   pinMode(pinInput, INPUT_PUL"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 52: The Circuit Doctor: Troubleshooting Diagnostics",
+        "rawCppLines": 10,
+        "setupCount": 0,
+        "loopCount": 8,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Automated Self-Test Diagnostic Routine enum DiagnosticResult { OK, NO_POWER, BLOWN_RESISTOR, REVERSED_LED, SHORT_CIRC"
+      }
+    ]
+  },
+  {
+    "id": "ldr",
+    "name": "Photoresistor Light Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: Photons & Photoresistance (Lux)",
+        "rawCppLines": 8,
+        "setupCount": 2,
+        "loopCount": 4,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     Serial.begin(9600); } void loop() {     int lightVal = analogRead(A1);     Serial.println(lightVal); "
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: The Voltage Divider Circuit (LDR + 10kΩ)",
+        "rawCppLines": 9,
+        "setupCount": 2,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     Serial.begin(9600); } void loop() {     int raw = analogRead(A1);     float volts = (raw * 5.0) / 102"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: The Dark Detector Threshold (if/else)",
+        "rawCppLines": 12,
+        "setupCount": 2,
+        "loopCount": 7,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(13, OUTPUT); } void loop() {     int light = analogRead(A1);     if (light < 400) {         d"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: Smart City Streetlight Studio (Day/Night Arc)",
+        "rawCppLines": 11,
+        "setupCount": 2,
+        "loopCount": 6,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(13, OUTPUT); } void loop() {     int lux = analogRead(A1);     if (lux < threshold) {        "
+      }
+    ]
+  },
+  {
+    "id": "rgb",
+    "name": "RGB Color Mixing Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: Additive Light Synthesis (Red, Green, Blue)",
+        "rawCppLines": 11,
+        "setupCount": 4,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(9, OUTPUT);  // Red Channel     pinMode(10, OUTPUT); // Green Channel     pinMode(11, OUTPUT)"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: 8-Bit PWM Fading & analogWrite()",
+        "rawCppLines": 13,
+        "setupCount": 2,
+        "loopCount": 7,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "analogWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(9, OUTPUT); } void loop() {     for (int b = 0; b <= 255; b++) {         analogWrite(9, b); /"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: Secondary & Tertiary Color Mixing (16.7M Colors)",
+        "rawCppLines": 9,
+        "setupCount": 0,
+        "loopCount": 7,
+        "parsedTypes": [
+          "other",
+          "analogWrite",
+          "header",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setRGB(int r, int g, int b) {     analogWrite(9, r);  // Red Pin ~9     analogWrite(10, g); // Green Pin ~10     an"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: Rainbow Mood Lamp & Color Studio",
+        "rawCppLines": 9,
+        "setupCount": 2,
+        "loopCount": 4,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "analogWrite"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(9, OUTPUT); pinMode(10, OUTPUT); pinMode(11, OUTPUT); } void loop() {     // Autonomous 3-Pha"
+      }
+    ]
+  },
+  {
+    "id": "temp",
+    "name": "TMP36 Temperature Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 1: Thermoelectric Physics & Silicon Junctions",
+        "rawCppLines": 8,
+        "setupCount": 2,
+        "loopCount": 4,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void setup() {     Serial.begin(9600); } void loop() {     int rawADC = analogRead(A2); // Read Pin A2     Serial.printl"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 2: The Millivolt-to-Celsius Formula",
+        "rawCppLines": 7,
+        "setupCount": 0,
+        "loopCount": 6,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void loop() {     int raw = analogRead(A2);     float volts = (raw * 5.0) / 1024.0;     float tempC = (volts - 0.5) * 10"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 3: Critical Overheat Alarms & Safety Cutoffs",
+        "rawCppLines": 12,
+        "setupCount": 2,
+        "loopCount": 7,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(13, OUTPUT); } void loop() {     float tempC = ((analogRead(A2) * 5.0 / 1024.0) - 0.5) * 100."
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 4: Smart Greenhouse / HVAC Climate Studio",
+        "rawCppLines": 13,
+        "setupCount": 2,
+        "loopCount": 8,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "analogWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "void setup() {     pinMode(6, OUTPUT); // PWM Cooling Fan Pin ~6 } void loop() {     float temp = ((analogRead(A2) * 5.0"
+      }
+    ]
+  },
+  {
+    "id": "sonar",
+    "name": "Ultrasonic Distance Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Bats, Dolphins and Sonic Pulses: How the HC-SR04 Hears Distance",
+        "rawCppLines": 24,
+        "setupCount": 6,
+        "loopCount": 10,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "digitalWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#define TRIG_PIN 12 #define ECHO_PIN 11  void setup() {   // Start serial communications at 9600 baud   Serial.begin(960"
+      },
+      {
+        "lessonId": 2,
+        "title": "Catching the Echo Wave: pulseIn() and Microsecond Clocks",
+        "rawCppLines": 23,
+        "setupCount": 4,
+        "loopCount": 13,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "digitalWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#define TRIG_PIN 12 #define ECHO_PIN 11  void setup() {   Serial.begin(9600);   pinMode(TRIG_PIN, OUTPUT);   pinMode(ECH"
+      },
+      {
+        "lessonId": 3,
+        "title": "The Math of Echoes: Dividing by 58.2 to Calculate Distance",
+        "rawCppLines": 28,
+        "setupCount": 4,
+        "loopCount": 17,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "digitalWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#define TRIG_PIN 12 #define ECHO_PIN 11  void setup() {   Serial.begin(9600);   pinMode(TRIG_PIN, OUTPUT);   pinMode(ECH"
+      },
+      {
+        "lessonId": 4,
+        "title": "Automotive Reverse Assistant: Multi-Zone Parking Radar",
+        "rawCppLines": 45,
+        "setupCount": 6,
+        "loopCount": 30,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "digitalWrite",
+          "noTone",
+          "tone",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#define TRIG_PIN 12 #define ECHO_PIN 11 #define BUZZER_PIN 8 #define LED_PIN 13  void setup() {   Serial.begin(9600);   "
+      }
+    ]
+  },
+  {
+    "id": "ir",
+    "name": "TCRT5000 Infrared Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Beams of Invisible Light: Photodiodes & Infrared Reflection",
+        "rawCppLines": 22,
+        "setupCount": 5,
+        "loopCount": 11,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "serial",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#define IR_SENSOR_PIN 2 #define LED_INDICATOR 13  void setup() {   Serial.begin(9600);   // Sensor digital pin is an INP"
+      },
+      {
+        "lessonId": 2,
+        "title": "The Electronic Referee: LM393 Voltage Comparator & Sensitivity Tuning",
+        "rawCppLines": 17,
+        "setupCount": 3,
+        "loopCount": 8,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "#define IR_DIGITAL_PIN 2  void setup() {   Serial.begin(9600);   pinMode(IR_DIGITAL_PIN, INPUT); }  void loop() {   // L"
+      },
+      {
+        "lessonId": 3,
+        "title": "Reading Shades of Gray: Analog Reflectance ADC Values",
+        "rawCppLines": 19,
+        "setupCount": 2,
+        "loopCount": 13,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "#define IR_ANALOG_PIN A0  void setup() {   Serial.begin(9600); }  void loop() {   // Read 10-bit analog voltage (0 to 10"
+      },
+      {
+        "lessonId": 4,
+        "title": "Self-Driving Robot Arena: Dual-Sensor Differential Steering",
+        "rawCppLines": 37,
+        "setupCount": 6,
+        "loopCount": 24,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "analogWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#define LEFT_IR_PIN 2 #define RIGHT_IR_PIN 3 #define LEFT_MOTOR_PWM 5 #define RIGHT_MOTOR_PWM 6  void setup() {   Serial"
+      }
+    ]
+  },
+  {
+    "id": "slicer",
+    "name": "3D Printing Slicer Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 53: From 3D Mesh to 2D Slices: Layer Height & Print Time",
+        "rawCppLines": 6,
+        "setupCount": 0,
+        "loopCount": 6,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "; Cura Engine G-Code Layer Initiation ; LAYER: 45 / 100 (Z = 9.00mm) G0 F7200 X105.000 Y105.000 Z9.000 ; Rapid travel to"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 54: Infill Geometry & Strength-to-Weight Optimization",
+        "rawCppLines": 5,
+        "setupCount": 0,
+        "loopCount": 5,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "; Cura Infill Raster Generation ; TYPE: INFILL (20% Gyroid) G1 F3600 X115.200 Y120.400 E0.12500 ; Sinusoidal toolpath cu"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 55: Overhang Physics: The 45° Rule & Support Structures",
+        "rawCppLines": 5,
+        "setupCount": 0,
+        "loopCount": 5,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "; Cura Support Generation Routine ; TYPE: SUPPORT-INTERFACE M106 S255 ; Fan 100% cooling to freeze overhang G1 F1500 X12"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 56: Decoding G-Code & Heated Bed Adhesion",
+        "rawCppLines": 8,
+        "setupCount": 0,
+        "loopCount": 8,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "; Standard Marlin / RepRap Start G-Code M190 S60 ; Wait for bed to reach 60C M109 S205 ; Wait for nozzle to reach 205C G"
+      }
+    ]
+  },
+  {
+    "id": "dht",
+    "name": "DHT11 Temp & Humidity Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 57: The 1-Wire Single-Bus Handshake Protocol",
+        "rawCppLines": 8,
+        "setupCount": 3,
+        "loopCount": 4,
+        "parsedTypes": [
+          "header",
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "#include <DHT.h> #define DHTPIN 4     // Digital pin connected to DHT sensor #define DHTTYPE DHT11 // DHT 11 model  DHT "
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 58: Capacitive Polymer Humidity Physics",
+        "rawCppLines": 10,
+        "setupCount": 0,
+        "loopCount": 8,
+        "parsedTypes": [
+          "header",
+          "delay",
+          "other",
+          "serial"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "void loop() {   delay(2000); // 2 second measurement delay   float h = dht.readHumidity();   float t = dht.readTemperatu"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 59: Calculating the Heat Index & Discomfort Formula",
+        "rawCppLines": 7,
+        "setupCount": 0,
+        "loopCount": 4,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// NOAA Heat Index Calculation in Arduino C++ float calcHeatIndex(float t, float h) {   // Convert Celsius to Fahrenheit"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 60: Automated Smart Greenhouse Climate Regulator",
+        "rawCppLines": 11,
+        "setupCount": 0,
+        "loopCount": 7,
+        "parsedTypes": [
+          "other",
+          "digitalWrite"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// Smart Greenhouse Dual Setpoint Regulation var int PIN_FAN = 6;  // Exhaust fan relay var int PIN_MIST = 7; // Ultraso"
+      }
+    ]
+  },
+  {
+    "id": "gas",
+    "name": "MQ-2 Combustible Gas Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 61: The Chemical Nose: Tin Dioxide (SnO₂) & Heating Coils",
+        "rawCppLines": 11,
+        "setupCount": 2,
+        "loopCount": 6,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// MQ Gas Sensor Analog Reading var int PIN_MQ_ANALOG = A0;  void setup() {   Serial.begin(9600); }  void loop() {   int"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 62: Reading Logarithmic Sensitivity Curves (Rs/R0 Math)",
+        "rawCppLines": 9,
+        "setupCount": 0,
+        "loopCount": 6,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Converting MQ Analog Voltage to Gas PPM var float R0 = 9.83; // Calibrated clean air base var float RL = 5.0;  // 5k "
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 63: The Gas Leak & Fire Smoke Alarm System",
+        "rawCppLines": 12,
+        "setupCount": 4,
+        "loopCount": 5,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Interrupt-Driven Hazardous Gas Alarm var int PIN_GAS_DO = 2;  // Hardware interrupt pin var int PIN_BUZZER = 8;  // P"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 64: National Air Quality Index (AQI) Calculator Studio",
+        "rawCppLines": 9,
+        "setupCount": 0,
+        "loopCount": 7,
+        "parsedTypes": [
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// Central Pollution Control Board (CPCB) AQI Categorization String getAqiCategory(int aqi) {   if (aqi <= 50)  return \""
+      }
+    ]
+  },
+  {
+    "id": "lcd",
+    "name": "16x2 I2C Display Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Taming 16 Wires into 2: The Magic of I2C Bus Protocol",
+        "rawCppLines": 18,
+        "setupCount": 7,
+        "loopCount": 4,
+        "parsedTypes": [
+          "header",
+          "other",
+          "lcd"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Wire.h> #include <LiquidCrystal_I2C.h>  // Set the LCD address to 0x27 for a 16 chars and 2 line display Liqui"
+      },
+      {
+        "lessonId": 2,
+        "title": "Waking the Screen: lcd.init(), backlight(), and Coordinates",
+        "rawCppLines": 16,
+        "setupCount": 3,
+        "loopCount": 9,
+        "parsedTypes": [
+          "header",
+          "other",
+          "lcd",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Wire.h> #include <LiquidCrystal_I2C.h>  LiquidCrystal_I2C lcd(0x27, 16, 2);  void setup() {   lcd.init();   lc"
+      },
+      {
+        "lessonId": 3,
+        "title": "Designing Custom Characters: 5x8 Pixel Matrix Typography",
+        "rawCppLines": 26,
+        "setupCount": 7,
+        "loopCount": 14,
+        "parsedTypes": [
+          "header",
+          "other",
+          "lcd"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Wire.h> #include <LiquidCrystal_I2C.h>  LiquidCrystal_I2C lcd(0x27, 16, 2);  // Custom 5x8 Heart Glyph Bitmask"
+      },
+      {
+        "lessonId": 4,
+        "title": "The IoT Command Deck: Live Multi-Sensor Telemetry Billboard",
+        "rawCppLines": 55,
+        "setupCount": 5,
+        "loopCount": 42,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "lcd",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "#include <Wire.h> #include <LiquidCrystal_I2C.h>  LiquidCrystal_I2C lcd(0x27, 16, 2);  #define LDR_PIN A1 #define TEMP_P"
+      }
+    ]
+  },
+  {
+    "id": "oled",
+    "name": "SSD1306 128x64 OLED Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 65: Pixel Coordinates & Memory Pages (SSD1306 Architecture)",
+        "rawCppLines": 32,
+        "setupCount": 14,
+        "loopCount": 9,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 17, Lesson 65: SSD1306 128x64 OLED Pixel Addressing #include <Wire.h> #"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 66: Graphics Primitives & Custom Monochrome Bitmaps (GFX Engine)",
+        "rawCppLines": 34,
+        "setupCount": 12,
+        "loopCount": 15,
+        "parsedTypes": [
+          "header",
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 17, Lesson 66: GFX Primitives & PROGMEM Bitmap Sprites #include <Wire.h"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 67: Real-Time Dynamic Telemetry: Circular Ring Buffers & Sparklines",
+        "rawCppLines": 41,
+        "setupCount": 4,
+        "loopCount": 24,
+        "parsedTypes": [
+          "header",
+          "other",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 17, Lesson 67: OLED Real-Time Oscilloscope Sparkline #include <Wire.h> "
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 68: Multi-Screen Embedded UI Architecture: State Machines & Inverted Menus",
+        "rawCppLines": 40,
+        "setupCount": 3,
+        "loopCount": 26,
+        "parsedTypes": [
+          "header",
+          "other"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 17, Lesson 68: Embedded Multi-Screen FSM UI Menu #include <Wire.h> #inc"
+      }
+    ]
+  },
+  {
+    "id": "soil",
+    "name": "Capacitive Soil Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 69: Resistive vs Capacitive Soil Sensing: Preventing Galvanic Corrosion",
+        "rawCppLines": 24,
+        "setupCount": 4,
+        "loopCount": 13,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 18, Lesson 69: Capacitive Soil Moisture Sensor v1.2 Calibration var int"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 70: Optocoupled Relay Isolation & Inductive Flyback Diodes",
+        "rawCppLines": 20,
+        "setupCount": 5,
+        "loopCount": 8,
+        "parsedTypes": [
+          "header",
+          "other",
+          "pinMode",
+          "digitalWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 18, Lesson 70: Optocoupled 5V Relay Control with Active-LOW Logic var i"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 71: Bang-Bang Control with Deadband Hysteresis (Anti-Chatter)",
+        "rawCppLines": 32,
+        "setupCount": 4,
+        "loopCount": 18,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "digitalWrite",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 18, Lesson 71: Bang-Bang Controller with Deadband Hysteresis var int SO"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 72: Closed-Loop Smart Irrigation Station & Water Safety Cutoff",
+        "rawCppLines": 43,
+        "setupCount": 5,
+        "loopCount": 31,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "digitalWrite",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 18, Lesson 72: Closed-Loop Smart Greenhouse Irrigation Controller var i"
+      }
+    ]
+  },
+  {
+    "id": "motor",
+    "name": "L298N Dual H-Bridge Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 73: The H-Bridge Transistor Architecture & Shoot-Through Protection",
+        "rawCppLines": 41,
+        "setupCount": 18,
+        "loopCount": 15,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "serial",
+          "analogWrite",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 19, Lesson 73: L298N Dual H-Bridge Transistor Truth Table // Left Motor"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 74: PWM Speed Modulation & Overcoming Motor Static Friction",
+        "rawCppLines": 32,
+        "setupCount": 7,
+        "loopCount": 18,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "digitalWrite",
+          "other",
+          "analogWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 19, Lesson 74: PWM Speed Ramp & Stiction Breakaway var int ENA = 5; var"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 75: Differential Skid Steer Rover Kinematics: Tank Drive Dynamics",
+        "rawCppLines": 39,
+        "setupCount": 15,
+        "loopCount": 13,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 19, Lesson 75: 4WD Differential Skid Steer Kinematics Engine // Left Tr"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 76: Autonomous Navigation: Reactive Obstacle Avoidance Loop",
+        "rawCppLines": 37,
+        "setupCount": 0,
+        "loopCount": 29,
+        "parsedTypes": [
+          "other",
+          "digitalWrite",
+          "header",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 19, Lesson 76: Autonomous Rover Obstacle Avoidance Course // Sonar Sens"
+      }
+    ]
+  },
+  {
+    "id": "imu",
+    "name": "MPU-6050 6-DoF IMU Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 77: MEMS Accelerometer Physics: Earth's 1G Gravity Vector & Tilt Angles",
+        "rawCppLines": 38,
+        "setupCount": 8,
+        "loopCount": 22,
+        "parsedTypes": [
+          "header",
+          "other",
+          "servoWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 20, Lesson 77: MPU6050 Accelerometer Pitch & Roll Calculation #include "
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 78: MEMS Gyroscope Physics: Coriolis Effect & Gyro Drift Integration",
+        "rawCppLines": 35,
+        "setupCount": 7,
+        "loopCount": 21,
+        "parsedTypes": [
+          "header",
+          "other",
+          "servoWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 20, Lesson 78: Gyroscope Angular Velocity & Integration Drift #include "
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 79: Sensor Fusion: The Complementary Filter Algorithm (High + Low Pass)",
+        "rawCppLines": 42,
+        "setupCount": 7,
+        "loopCount": 26,
+        "parsedTypes": [
+          "header",
+          "other",
+          "servoWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 20, Lesson 79: Complementary Filter Sensor Fusion (Alpha = 0.98) #inclu"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 80: Closed-Loop Gimbal Stabilization & Flight Telemetry Studio",
+        "rawCppLines": 28,
+        "setupCount": 7,
+        "loopCount": 15,
+        "parsedTypes": [
+          "header",
+          "other",
+          "servoAttach",
+          "servoWrite",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 20, Lesson 80: 2-Axis Closed-Loop Camera Gimbal Stabilizer #include <Wi"
+      }
+    ]
+  },
+  {
+    "id": "rfid",
+    "name": "RC522 13.56MHz RFID Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 81: Near-Field Resonant Induction & The SPI 4-Wire Bus",
+        "rawCppLines": 30,
+        "setupCount": 6,
+        "loopCount": 16,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 21, Lesson 81: RC522 RFID SPI Initialization & Card Detection #include "
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 82: MIFARE Classic 1K Memory Architecture: Sectors, Blocks & Crypto-1",
+        "rawCppLines": 39,
+        "setupCount": 5,
+        "loopCount": 24,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 21, Lesson 82: Reading MIFARE Classic 1K Sector 1 with Key A #include <"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 83: Access Control Security: UID Whitelist & Electronic Door Latch",
+        "rawCppLines": 44,
+        "setupCount": 8,
+        "loopCount": 28,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "servoAttach",
+          "servoWrite",
+          "other",
+          "serial",
+          "digitalWrite",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 21, Lesson 83: RFID Door Access Control with Servo Deadbolt #include <S"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 84: Read/Write Sector Data & RFID Digital Wallet Studio",
+        "rawCppLines": 34,
+        "setupCount": 12,
+        "loopCount": 15,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 21, Lesson 84: Cashless RFID Digital Wallet (Deduct & Top-Up) #include "
+      }
+    ]
+  },
+  {
+    "id": "iot",
+    "name": "ESP32 Cloud Telemetry Lab",
+    "lessons": [
+      {
+        "lessonId": 1,
+        "title": "Lesson 85: Microcontroller vs IoT SoC: ATmega328P vs Xtensa ESP32 Dual-Core",
+        "rawCppLines": 29,
+        "setupCount": 5,
+        "loopCount": 13,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 22, Lesson 85: ESP32 Dual-Core Architecture & FreeRTOS Tasks TaskHandle"
+      },
+      {
+        "lessonId": 2,
+        "title": "Lesson 86: Wi-Fi Station Mode, DHCP Lease & RESTful HTTP Client",
+        "rawCppLines": 35,
+        "setupCount": 13,
+        "loopCount": 15,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial",
+          "delay"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 22, Lesson 86: ESP32 Wi-Fi Station Association & HTTP Client #include <"
+      },
+      {
+        "lessonId": 3,
+        "title": "Lesson 87: The MQTT Publish/Subscribe Telemetry Broker Protocol (QoS 0/1/2)",
+        "rawCppLines": 40,
+        "setupCount": 4,
+        "loopCount": 27,
+        "parsedTypes": [
+          "header",
+          "other",
+          "serial"
+        ],
+        "hasExecutableHardwareAction": false,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 22, Lesson 87: MQTT Publisher & Subscriber Engine #include <WiFi.h> #in"
+      },
+      {
+        "lessonId": 4,
+        "title": "Lesson 88: Cloud IoT Dashboard & Bi-Directional Digital Twin Studio",
+        "rawCppLines": 33,
+        "setupCount": 6,
+        "loopCount": 19,
+        "parsedTypes": [
+          "header",
+          "pinMode",
+          "other",
+          "digitalWrite",
+          "serial"
+        ],
+        "hasExecutableHardwareAction": true,
+        "rawCppSample": "// SparkByte K-12 ATL Robotics Curriculum // Lab 22, Lesson 88: Complete Bi-Directional Industry 4.0 Digital Twin #inclu"
+      }
+    ]
+  }
+]
