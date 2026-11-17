@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+*/node_modules/
+sparkbyte-v2/node_modules/
+
+# Local tools and binaries
+tools/
+*.exe
+*.node
+*.dll
+
+# Build artifacts & caches
+dist/
+*/dist/
+sparkbyte-v2/dist/
+.vite/
+*/.vite/
+*.tsbuildinfo
+
+# Python cache & temp
+__pycache__/
+*/__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment & logs
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS & Editor
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/
