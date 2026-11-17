@@ -60,6 +60,10 @@ class WebAudioBuzzer {
         this.osc.disconnect();
         this.osc = null;
       }
+      if (this.gain) {
+        this.gain.disconnect();
+        this.gain = null;
+      }
     } catch {
       // Ignore
     }
@@ -581,6 +585,17 @@ export const DmmLabView: React.FC = () => {
     (testNode === 'resistor220' && (ledOn || pwmDuty > 0)) ||
     (currentMa > 0.0)
   );
+
+  React.useEffect(() => {
+    if (dmmMode === 'CONT' && reading.includes('BEEP')) {
+      buzzerAudio.playTone(2400); // 2.4 kHz standard DMM continuity beeper
+    } else {
+      buzzerAudio.stopTone();
+    }
+    return () => {
+      buzzerAudio.stopTone();
+    };
+  }, [dmmMode, reading]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full p-4 relative">

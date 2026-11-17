@@ -781,7 +781,10 @@ function applyInstructionToHardware(
       break;
 
     case 'lcd': {
-      if (inst.param && typeof inst.param === 'string') {
+      if (inst.param === 'clear') {
+        hw.lcdTextRow0 = '';
+        hw.lcdTextRow1 = '';
+      } else if (inst.param && typeof inst.param === 'string' && inst.param.includes(',')) {
         const parts = inst.param.split(',');
         hw.lcdRow = parseInt(parts[1], 10) || 0;
       }
@@ -861,8 +864,66 @@ function applyInstructionToHardware(
             if (x < 128) hw.oledBuffer[row][x] = true;
             if (x + w - 1 < 128) hw.oledBuffer[row][x + w - 1] = true;
           }
+        } else if (cmd === 'circle' && x !== undefined && y !== undefined && inst.displayData.r !== undefined) {
+          const r = inst.displayData.r;
+          for (let angle = 0; angle < 360; angle += 4) {
+            const rad = (angle * Math.PI) / 180;
+            const px = Math.round(x + r * Math.cos(rad));
+            const py = Math.round(y + r * Math.sin(rad));
+            if (py >= 0 && py < 64 && px >= 0 && px < 128) hw.oledBuffer[py][px] = true;
+          }
+        } else if (cmd === 'fillCircle' && x !== undefined && y !== undefined && inst.displayData.r !== undefined) {
+          const r = inst.displayData.r;
+          for (let dy = -r; dy <= r; dy++) {
+            for (let dx = -r; dx <= r; dx++) {
+              if (dx * dx + dy * dy <= r * r) {
+                const px = Math.round(x + dx);
+                const py = Math.round(y + dy);
+                if (py >= 0 && py < 64 && px >= 0 && px < 128) hw.oledBuffer[py][px] = true;
+              }
+            }
+          }
+        } else if (cmd === 'roundRect' && x !== undefined && y !== undefined && w !== undefined && h !== undefined) {
+          for (let col = x + 2; col < x + w - 2 && col < 128; col++) {
+            if (y < 64) hw.oledBuffer[y][col] = true;
+            if (y + h - 1 < 64) hw.oledBuffer[y + h - 1][col] = true;
+          }
+          for (let row = y + 2; row < y + h - 2 && row < 64; row++) {
+            if (x < 128) hw.oledBuffer[row][x] = true;
+            if (x + w - 1 < 128) hw.oledBuffer[row][x + w - 1] = true;
+          }
+        } else if (cmd === 'bitmap') {
+          const bx = x !== undefined ? x : 10;
+          const by = y !== undefined ? y : 10;
+          const heartBmp = [0x00, 0x66, 0xff, 0xff, 0xff, 0x7e, 0x3c, 0x18];
+          for (let rIdx = 0; rIdx < 8; rIdx++) {
+            const rowVal = heartBmp[rIdx];
+            for (let cIdx = 0; cIdx < 8; cIdx++) {
+              if ((rowVal >> (7 - cIdx)) & 1) {
+                const px = bx + cIdx;
+                const py = by + rIdx;
+                if (py >= 0 && py < 64 && px >= 0 && px < 128) hw.oledBuffer[py][px] = true;
+              }
+            }
+          }
         }
       }
+      break;
+    }
+
+    case 'serialInit': {
+      const baud = inst.expr || '9600';
+      addSerial(`[UART] Serial Port opened at ${baud} baud.`);
+      break;
+    }
+
+    case 'wire': {
+      hw.currentMa = Math.max(hw.currentMa, 22.0);
+      break;
+    }
+
+    case 'peripheral': {
+      hw.currentMa = Math.max(hw.currentMa, 25.0);
       break;
     }
 

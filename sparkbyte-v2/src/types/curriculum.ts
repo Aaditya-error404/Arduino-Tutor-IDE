@@ -26,8 +26,11 @@ export type InstructionType =
   | 'noTone'
   | 'delay'
   | 'serial'
+  | 'serialInit'
   | 'lcd'
   | 'motor'
+  | 'wire'
+  | 'peripheral'
   | 'logic'
   | 'comment'
   | 'varDecl'
@@ -62,7 +65,7 @@ export interface InstructionNode {
   args?: string[];
   cadDims?: { x: number; y: number; z: number; holeR?: number };
   gcodeData?: { cmd: string; x?: number; y?: number; z?: number; e?: number; f?: number; s?: number };
-  displayData?: { cmd: string; x?: number; y?: number; x2?: number; y2?: number; w?: number; h?: number; text?: string; color?: number };
+  displayData?: { cmd: string; x?: number; y?: number; x2?: number; y2?: number; w?: number; h?: number; r?: number; text?: string; color?: number };
 }
 
 export interface LessonMisconception {

@@ -724,11 +724,101 @@ function parseLineToNodes(
         }
       }];
     }
+    const roundRectMatch = trimmed.match(/drawRoundRect\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (roundRectMatch) {
+      return [{
+        id: `inst-${lineIndex}`,
+        lineIndex,
+        phase,
+        type: 'display',
+        rawCpp,
+        plainEnglish,
+        displayData: {
+          cmd: 'roundRect',
+          x: parseInt(roundRectMatch[1], 10),
+          y: parseInt(roundRectMatch[2], 10),
+          w: parseInt(roundRectMatch[3], 10),
+          h: parseInt(roundRectMatch[4], 10),
+          r: parseInt(roundRectMatch[5], 10)
+        }
+      }];
+    }
+    const fillCircleMatch = trimmed.match(/fillCircle\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (fillCircleMatch) {
+      return [{
+        id: `inst-${lineIndex}`,
+        lineIndex,
+        phase,
+        type: 'display',
+        rawCpp,
+        plainEnglish,
+        displayData: {
+          cmd: 'fillCircle',
+          x: parseInt(fillCircleMatch[1], 10),
+          y: parseInt(fillCircleMatch[2], 10),
+          r: parseInt(fillCircleMatch[3], 10)
+        }
+      }];
+    }
+    const circleMatch = trimmed.match(/drawCircle\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (circleMatch) {
+      return [{
+        id: `inst-${lineIndex}`,
+        lineIndex,
+        phase,
+        type: 'display',
+        rawCpp,
+        plainEnglish,
+        displayData: {
+          cmd: 'circle',
+          x: parseInt(circleMatch[1], 10),
+          y: parseInt(circleMatch[2], 10),
+          r: parseInt(circleMatch[3], 10)
+        }
+      }];
+    }
+    const bitmapMatch = trimmed.match(/drawBitmap\s*\(\s*(\d+)\s*,\s*(\d+)/i);
+    if (bitmapMatch) {
+      return [{
+        id: `inst-${lineIndex}`,
+        lineIndex,
+        phase,
+        type: 'display',
+        rawCpp,
+        plainEnglish,
+        displayData: {
+          cmd: 'bitmap',
+          x: parseInt(bitmapMatch[1], 10),
+          y: parseInt(bitmapMatch[2], 10)
+        }
+      }];
+    }
+    const printMatch = trimmed.match(/print(?:ln)?\s*\(\s*(?:F\()?["']?([^"')]+)["']?\)?\s*\)/i);
+    if (printMatch) {
+      return [{
+        id: `inst-${lineIndex}`,
+        lineIndex,
+        phase,
+        type: 'display',
+        rawCpp,
+        plainEnglish,
+        displayData: {
+          cmd: 'text',
+          text: printMatch[1]
+        }
+      }];
+    }
     return [{ id: `inst-${lineIndex}`, lineIndex, phase, type: 'display', rawCpp, plainEnglish, displayData: { cmd: 'display' } }];
   }
 
   // 8. 16x2 LCD (Lab 16)
   if (lower.startsWith('lcd.')) {
+    if (lower.includes('clear')) {
+      return [{ id: `inst-${lineIndex}`, lineIndex, phase, type: 'lcd', rawCpp, plainEnglish, param: 'clear' }];
+    }
+    if (lower.includes('init') || lower.includes('begin') || lower.includes('backlight')) {
+      return [{ id: `inst-${lineIndex}`, lineIndex, phase, type: 'lcd', rawCpp, plainEnglish, param: 'init' }];
+    }
     const cursorMatch = trimmed.match(/setCursor\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/i);
     if (cursorMatch) {
       return [{
@@ -753,6 +843,7 @@ function parseLineToNodes(
         expr: printMatch[1] !== undefined ? JSON.stringify(printMatch[1]) : printMatch[2]
       }];
     }
+    return [{ id: `inst-${lineIndex}`, lineIndex, phase, type: 'lcd', rawCpp, plainEnglish, param: 'misc' }];
   }
 
   // 9. Function calls (e.g. motorForward(200), motorReverse(150), setRGB(180, 0, 255))
@@ -879,7 +970,21 @@ function parseLineToNodes(
     }];
   }
 
-  // 17. delay(ms)
+  // 17. delay(ms) and delayMicroseconds(us)
+  if (lower.startsWith('delaymicroseconds')) {
+    const usArgs = extractCallArgs(trimmed, 'delayMicroseconds');
+    const usVal = usArgs && usArgs[0] ? Number(usArgs[0]) : 10;
+    return [{
+      id: `inst-${lineIndex}`,
+      lineIndex,
+      phase,
+      type: 'delay',
+      rawCpp,
+      plainEnglish: `Wait ${usVal} microseconds`,
+      expr: String(Math.max(1, Math.round(usVal / 1000) || 1))
+    }];
+  }
+
   const delArgs = extractCallArgs(trimmed, 'delay');
   if (delArgs && delArgs.length >= 1) {
     return [{
@@ -893,7 +998,21 @@ function parseLineToNodes(
     }];
   }
 
-  // 18. Serial.print / println
+  // 18. Serial methods
+  if (lower.startsWith('serial.begin')) {
+    const sArgs = extractCallArgs(trimmed, 'Serial.begin');
+    const baud = sArgs && sArgs[0] ? sArgs[0].trim() : '9600';
+    return [{
+      id: `inst-${lineIndex}`,
+      lineIndex,
+      phase,
+      type: 'serialInit',
+      rawCpp,
+      plainEnglish: `Initialize Serial Monitor at ${baud} baud`,
+      expr: baud
+    }];
+  }
+
   if (lower.includes('serial.print')) {
     const sArgs = extractCallArgs(trimmed, 'Serial.println') || extractCallArgs(trimmed, 'Serial.print');
     return [{
@@ -907,7 +1026,46 @@ function parseLineToNodes(
     }];
   }
 
-  // 19. Array declaration: int melody[] = { 262, 294, ... }; byte MASTER_UID[4] = { 0xA3, ... };
+  // 18b. Wire (I2C) & Peripheral bus methods
+  if (lower.startsWith('wire.')) {
+    return [{
+      id: `inst-${lineIndex}`,
+      lineIndex,
+      phase,
+      type: 'wire',
+      rawCpp,
+      plainEnglish: `I2C Bus: ${trimmed}`
+    }];
+  }
+
+  if (lower.startsWith('spi.') || lower.startsWith('rfid.') || lower.startsWith('dht.begin')) {
+    return [{
+      id: `inst-${lineIndex}`,
+      lineIndex,
+      phase,
+      type: 'peripheral',
+      rawCpp,
+      plainEnglish: `Peripheral Bus: ${trimmed}`
+    }];
+  }
+
+  // 19. Sized array declaration: byte buffer[18]; byte sparkline[BUFFER_LEN];
+  const sizedEmptyArr = trimmed.match(/^(?:var\s+)?(?:int|float|byte|char)\s+(\w+)\s*\[\s*([^\]]+)\s*\]\s*;?$/i);
+  if (sizedEmptyArr) {
+    const varName = sizedEmptyArr[1];
+    return [{
+      id: `inst-${lineIndex}`,
+      lineIndex,
+      phase,
+      type: 'varDecl',
+      rawCpp,
+      plainEnglish,
+      varName,
+      value: JSON.stringify([])
+    }];
+  }
+
+  // 19b. Array declaration: int melody[] = { 262, 294, ... }; byte MASTER_UID[4] = { 0xA3, ... };
   const arrMatch = trimmed.match(/^(?:var\s+)?(?:int|float|byte)\s+(\w+)\s*\[\s*\d*\s*\]\s*=\s*\{([^}]+)\}/i);
   if (arrMatch) {
     const varName = arrMatch[1];
