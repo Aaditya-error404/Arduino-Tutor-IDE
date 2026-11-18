@@ -10,7 +10,7 @@
 
 import { GradeLevel, HardwareState } from './curriculum';
 
-export type AiCoachProvider = 'deterministic' | 'gemini' | 'openai_compatible';
+export type AiCoachProvider = 'deterministic' | 'webllm' | 'gemini' | 'openai_compatible';
 
 export interface AiCoachConfig {
   provider: AiCoachProvider;
@@ -20,6 +20,15 @@ export interface AiCoachConfig {
   openaiModel: string; // default: 'gpt-4o-mini'
   language: 'en' | 'hi'; // English or Hindi/Hinglish
   socraticMode: boolean; // True: hints & questions; False: direct solutions
+  webLlmModel?: string; // e.g. 'Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC'
+}
+
+export interface SuggestedFix {
+  label: string;
+  newCode: string;
+  description: string;
+  oldSnippet?: string;
+  newSnippet?: string;
 }
 
 export interface AiIssue {
@@ -30,6 +39,7 @@ export interface AiIssue {
   message: string;
   lineIndex?: number;
   fixSuggestion?: string;
+  suggestedFix?: SuggestedFix;
   sliderAdjustment?: Partial<HardwareState>;
 }
 
@@ -54,8 +64,9 @@ export interface AiCoachMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
-  source: 'offline_rule' | 'gemini' | 'openai' | 'system';
+  source: 'offline_rule' | 'webllm' | 'gemini' | 'openai' | 'system';
   suggestedCode?: string;
+  suggestedFix?: SuggestedFix;
   issues?: AiIssue[];
 }
 
@@ -74,4 +85,5 @@ export interface WorkbenchStateSnapshot {
   loopCount: number;
   hardwareState: HardwareState;
   serialLogs: string[];
+  runtimeVars?: Record<string, any>;
 }

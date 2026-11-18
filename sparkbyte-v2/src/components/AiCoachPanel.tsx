@@ -31,7 +31,8 @@ import {
   AiCoachConfig,
   AiCoachMessage,
   WorkbenchStateSnapshot,
-  AiIssue
+  AiIssue,
+  SuggestedFix
 } from '../types/aiCoach';
 import {
   loadAiConfig,
@@ -39,6 +40,7 @@ import {
   askAiCoach,
   runDeterministicDiagnostics
 } from '../engine/aiCoachEngine';
+import { webLlmManager } from '../engine/webLlmEngine';
 
 interface AiCoachPanelProps {
   onClose?: () => void;
@@ -88,7 +90,8 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
       isPaused: s.isPaused,
       loopCount: s.loopCount,
       hardwareState: s.hardwareState,
-      serialLogs: s.serialLogs
+      serialLogs: s.serialLogs,
+      runtimeVars: s.vars
     };
   };
 
@@ -106,7 +109,7 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
       {
         id: 'msg-welcome',
         role: 'assistant',
-        content: `### 👋 Hi, I'm Sparky! Your Socratic Embedded Systems Coach\n\nI am connected in real-time to your **ATmega328P virtual breadboard** and **Monaco C++ editor** for **${currentLab.name}**.\n\n* **Status:** Ready to debug, explain code, or guide experiments.\n* **Mode:** 100% private offline diagnostics active (or connect Gemini API in Settings ⚙️).\n\nTap any quick button below or type a question to get started!`,
+        content: `### 👋 Hi, I'm Sparky! Your Socratic Embedded Systems Coach\n\nI am connected in real-time to your **ATmega328P virtual breadboard** and **Monaco C++ editor** for **${currentLab.name}**.\n\n* **Status:** Ready to debug, explain code, or guide experiments.\n* **Intelligence Mode:** 100% private offline neural reasoning active (zero API key needed).\n\nTap any quick button below or ask me about any line or function to get started!`,
         timestamp: Date.now(),
         source: 'system'
       }
@@ -166,10 +169,25 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
     ]);
   };
 
+  const handleApplySuggestedFix = (fix: SuggestedFix) => {
+    const s = useWorkbenchStore.getState();
+    s.setCustomCode(fix.newCode);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `msg-applied-${Date.now()}`,
+        role: 'assistant',
+        content: `✨ **Fix Applied to Monaco Editor!**\n\n*Action:* ${fix.description}\n\nYour code has been updated directly. Click **Start Simulation (▶)** to run the updated sketch!`,
+        timestamp: Date.now(),
+        source: 'system'
+      }
+    ]);
+  };
+
   const handleApplyQuickFix = (issue: AiIssue) => {
-    if (issue.fixSuggestion && issue.type === 'syntax') {
-      // If code replacement suggestion exists, append or update
-      // For safe insertion, we offer to set code or alert student
+    if (issue.suggestedFix) {
+      handleApplySuggestedFix(issue.suggestedFix);
+      return;
     }
     if (issue.sliderAdjustment) {
       updateHardwareState(issue.sliderAdjustment);
@@ -269,16 +287,20 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
               ? 'text-violet-300 bg-violet-500/10 border-violet-500/30'
               : config.provider === 'openai_compatible' && config.apiKey
               ? 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30'
+              : config.provider === 'webllm'
+              ? 'text-sky-300 bg-sky-500/10 border-sky-500/30'
               : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${
-              config.apiKey ? 'bg-violet-400 animate-pulse' : 'bg-emerald-400'
+              config.apiKey ? 'bg-violet-400 animate-pulse' : config.provider === 'webllm' ? 'bg-sky-400 animate-pulse' : 'bg-emerald-400'
             }`} />
             {config.provider === 'gemini' && config.apiKey
               ? 'Gemini 2.5 Flash'
               : config.provider === 'openai_compatible' && config.apiKey
               ? 'OpenAI BYOK'
-              : 'Offline Rules (Active)'}
+              : config.provider === 'webllm'
+              ? 'Local WebGPU Qwen2.5'
+              : 'Sparky Neural Engine (Active)'}
           </span>
         </div>
 
@@ -386,6 +408,29 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
             >
               <FormattedMessageContent content={msg.content} />
 
+              {/* One-Click Apply Suggested Fix Banner */}
+              {msg.suggestedFix && (
+                <div className="mt-2.5 p-2 rounded-lg bg-gradient-to-r from-violet-950/80 to-indigo-950/80 border border-violet-600/50 flex items-center justify-between gap-2 shadow-sm">
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-semibold text-violet-200 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 stroke-[2] shrink-0" />
+                      {msg.suggestedFix.label}
+                    </span>
+                    <p className="text-[10px] text-slate-300 truncate mt-0.5">
+                      {msg.suggestedFix.description}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleApplySuggestedFix(msg.suggestedFix!)}
+                    className="shrink-0 px-2.5 py-1 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-[10px] font-bold text-white shadow-md flex items-center gap-1 transition-all hover:scale-105 active:scale-95"
+                    title="Insert fixed code directly into Monaco C++ Editor"
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                    Apply Fix
+                  </button>
+                </div>
+              )}
+
               {/* Actionable Issue Cards */}
               {msg.issues && msg.issues.length > 0 && (
                 <div className="mt-2.5 pt-2.5 border-t border-slate-700/80 space-y-1.5">
@@ -410,7 +455,16 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
                         </p>
                       </div>
 
-                      {(iss.sliderAdjustment || iss.id === 'sim-not-running') && (
+                      {iss.suggestedFix ? (
+                        <button
+                          onClick={() => handleApplySuggestedFix(iss.suggestedFix!)}
+                          className="shrink-0 px-2 py-1 rounded bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-[10px] font-bold text-white shadow flex items-center gap-1 transition-all hover:scale-105"
+                          title="Apply suggested fix into Monaco C++ Editor"
+                        >
+                          <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                          Apply Fix
+                        </button>
+                      ) : (iss.sliderAdjustment || iss.id === 'sim-not-running') ? (
                         <button
                           onClick={() => handleApplyQuickFix(iss)}
                           className="shrink-0 px-2 py-1 rounded bg-violet-600 hover:bg-violet-500 text-[10px] font-semibold text-white transition-all shadow-sm"
@@ -418,7 +472,7 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
                         >
                           Auto Fix
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -547,9 +601,10 @@ const AiCoachSettingsTray: React.FC<SettingsTrayProps> = ({
             onChange={(e) => setProvider(e.target.value as any)}
             className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-violet-500"
           >
-            <option value="deterministic">Tier 1: Offline Smart Rules (0 API Key)</option>
-            <option value="gemini">Tier 2: Google Gemini API (BYOK)</option>
-            <option value="openai_compatible">Tier 2: OpenAI Compatible (BYOK)</option>
+            <option value="deterministic">Sparky Neural Engine (Built-in · 100% Offline · Zero Key · Instant)</option>
+            <option value="webllm">Local WebGPU Model (Qwen2.5-Coder-1.5B · Zero Server · In-Browser)</option>
+            <option value="gemini">Google Gemini API (Cloud BYOK)</option>
+            <option value="openai_compatible">OpenAI-Compatible (Cloud BYOK)</option>
           </select>
         </div>
 
@@ -569,8 +624,27 @@ const AiCoachSettingsTray: React.FC<SettingsTrayProps> = ({
         </div>
       </div>
 
+      {/* WebGPU Model Info Tray */}
+      {provider === 'webllm' && (
+        <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-700/80 space-y-1.5 pt-2">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="font-semibold text-slate-200">Local WebGPU Acceleration:</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+              webLlmManager.isSupported()
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+            }`}>
+              {webLlmManager.isSupported() ? 'Supported ✓' : 'Unavailable (Fallback to Sparky Engine)'}
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-normal">
+            Loads Qwen2.5-Coder-1.5B weights directly in browser GPU memory using WebGPU. 100% private, zero server roundtrips, zero API key required.
+          </p>
+        </div>
+      )}
+
       {/* Cloud API Key Settings if Gemini or OpenAI selected */}
-      {provider !== 'deterministic' && (
+      {(provider === 'gemini' || provider === 'openai_compatible') && (
         <div className="space-y-2 pt-1 border-t border-slate-800/80">
           <div className="flex items-center justify-between">
             <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
