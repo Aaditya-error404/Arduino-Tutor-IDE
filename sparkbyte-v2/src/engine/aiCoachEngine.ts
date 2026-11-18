@@ -121,17 +121,17 @@ export function runDeterministicDiagnostics(snapshot: WorkbenchStateSnapshot): A
     });
   }
 
-  // 4. Syntax Check: Missing semicolons on key Arduino statements
+  // 4. Syntax Check: Missing semicolons on key Arduino statements & variable declarations
   lines.forEach((lineText, idx) => {
     const trimmed = lineText.trim();
     if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return;
     if (trimmed.endsWith('{') || trimmed.endsWith('}') || trimmed.endsWith(':')) return;
-    if (/^(void|int|float|bool|byte|char|if|else|for|while|switch)\b/.test(trimmed)) return;
+    if (/^(void|if|else|for|while|switch)\b/.test(trimmed)) return;
 
-    if (
-      /^(pinMode|digitalWrite|analogWrite|delay|delayMicroseconds|Serial\.print|lcd\.|display\.|servo\.|tone|noTone|Wire\.|SPI\.)/.test(trimmed) &&
-      !trimmed.endsWith(';')
-    ) {
+    const isVarDecl = /^(int|float|bool|byte|char|long|double|unsigned|const)\b/.test(trimmed);
+    const isCall = /^(pinMode|digitalWrite|analogWrite|delay|delayMicroseconds|Serial\.print|lcd\.|display\.|servo\.|myServo\.|tone|noTone|Wire\.|SPI\.)/.test(trimmed);
+
+    if ((isCall || isVarDecl) && !trimmed.endsWith(';')) {
       const fixedLines = [...lines];
       fixedLines[idx] = `${lineText};`;
       issues.push({
@@ -670,6 +670,856 @@ export function generateHindiExplanation(snapshot: WorkbenchStateSnapshot): stri
 अगर आप चाहते हैं कि सर्किट तेज़ी से काम करे, तो \`delay(1000)\` की जगह \`delay(200)\` लिखकर देखें! कोई भी सवाल हो तो नीचे चैट में पूछें! 🚀`;
 }
 
+export function inspectSpecificLineHindi(lineNum: number, snapshot: WorkbenchStateSnapshot): string {
+  const lines = snapshot.currentCpp.split('\n');
+  if (lineNum < 1 || lineNum > lines.length) {
+    return `लाइन ${lineNum} आपके स्केच में नहीं है (कुल ${lines.length} लाइनें हैं)।`;
+  }
+  const rawLine = lines[lineNum - 1];
+  const trimmed = rawLine.trim();
+  const plainEnglish = generatePlainEnglishForLine(trimmed, snapshot.gradeBand);
+  const hwAction = generateHardwareActionForLine(trimmed, snapshot.activeLabId);
+
+  return `### 🔍 लाइन ${lineNum} की विस्तृत जानकारी (हिंदी)\n\n\`\`\`cpp\n${rawLine}\n\`\`\`\n\n* **अर्थ:** ${plainEnglish}\n* **हार्डवेयर प्रभाव:** ${hwAction}\n\n*टिप: आप इस लाइन में मान बदलकर नया प्रयोग कर सकते हैं!*`;
+}
+
+// ============================================================================
+// 3.5 PROCEDURAL ARDUINO C++ CODE GENERATOR (100% OFFLINE, ZERO API KEY)
+// ============================================================================
+
+export interface GeneratedSketch {
+  title: string;
+  description: string;
+  code: string;
+  labId: string;
+}
+
+export function isCodeGenerationIntent(query: string): boolean {
+  const q = query.toLowerCase().trim();
+  if (
+    q.includes('generate code') ||
+    q.includes('write code') ||
+    q.includes('write a sketch') ||
+    q.includes('write sketch') ||
+    q.includes('give me code') ||
+    q.includes('create code') ||
+    q.includes('make code') ||
+    q.includes('code for') ||
+    q.includes('sketch for') ||
+    q.includes('arduino code') ||
+    q.includes('arduino sketch') ||
+    q.includes('synthesize code') ||
+    q.includes('how to code')
+  ) {
+    return true;
+  }
+  if (
+    q.includes('blink faster') ||
+    q.includes('blink slower') ||
+    q.includes('blink an led') ||
+    q.includes('make an led blink') ||
+    q.includes('make led blink') ||
+    q.includes('control 2 led') ||
+    q.includes('control two led') ||
+    q.includes('dual led') ||
+    q.includes('sweep a servo') ||
+    q.includes('servo sweep') ||
+    q.includes('read ultrasonic') ||
+    q.includes('sonar code') ||
+    q.includes('read distance') ||
+    q.includes('read temperature') ||
+    q.includes('measure temperature') ||
+    q.includes('water the plant') ||
+    q.includes('water pump') ||
+    q.includes('spin the motor') ||
+    q.includes('drive the motor')
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function resolveTargetLabId(query: string, currentLabId: string): string {
+  const q = query.toLowerCase();
+
+  // 1. Explicit Lab Numbers: "lab 1", "lab 01", etc.
+  const labNumMatch = q.match(/\blab\s*(?:0?(\d+))\b/i);
+  if (labNumMatch) {
+    const num = parseInt(labNumMatch[1], 10);
+    const labNumberMap: Record<number, string> = {
+      1: 'led', 2: 'servo', 3: 'button', 4: 'pot', 5: 'buzzer',
+      6: 'cad', 7: 'dmm', 8: 'ldr', 9: 'rgb', 10: 'temp',
+      11: 'sonar', 12: 'ir', 13: 'slicer', 14: 'dht', 15: 'gas',
+      16: 'lcd', 17: 'oled', 18: 'soil', 19: 'motor', 20: 'imu',
+      21: 'rfid', 22: 'iot'
+    };
+    if (labNumberMap[num]) return labNumberMap[num];
+  }
+
+  // 2. Hardware / Domain Keyword Matching
+  if (/\b(rfid|mfrc522|card|uid)\b/i.test(q)) return 'rfid';
+  if (/\b(imu|mpu6050|gyro|accelerometer)\b/i.test(q)) return 'imu';
+  if (/\b(iot|esp8266|wifi|cloud)\b/i.test(q)) return 'iot';
+  if (/\b(soil|moisture|irrigation|plant|pump)\b/i.test(q)) return 'soil';
+  if (/\b(motor|l298n|h-bridge|dc motor)\b/i.test(q)) return 'motor';
+  if (/\b(oled|ssd1306|128x64)\b/i.test(q)) return 'oled';
+  if (/\b(lcd|16x2|liquidcrystal)\b/i.test(q)) return 'lcd';
+  if (/\b(gas|mq-2|mq2|smoke)\b/i.test(q)) return 'gas';
+  if (/\b(dht|dht11|humidity)\b/i.test(q)) return 'dht';
+  if (/\b(sonar|ultrasonic|distance|hc-sr04|obstacle)\b/i.test(q)) return 'sonar';
+  if (/\b(ir\b|infrared|line tracking|proximity)\b/i.test(q)) return 'ir';
+  if (/\b(temp|temperature|lm35|tmp36|thermometer)\b/i.test(q)) return 'temp';
+  if (/\b(rgb|color fade|rainbow)\b/i.test(q)) return 'rgb';
+  if (/\b(ldr|photoresistor|nightlight|lux|dusk)\b/i.test(q)) return 'ldr';
+  if (/\b(dmm|multimeter|voltmeter)\b/i.test(q)) return 'dmm';
+  if (/\b(cad|openscad|solid model)\b/i.test(q)) return 'cad';
+  if (/\b(slicer|gcode|toolpath)\b/i.test(q)) return 'slicer';
+  if (/\b(buzzer|piezo|tone|melody|alarm|siren)\b/i.test(q)) return 'buzzer';
+  if (/\b(pot|potentiometer|knob)\b/i.test(q)) return 'pot';
+  if (/\b(button|switch|pushbutton)\b/i.test(q)) return 'button';
+  if (/\b(servo|sg90|sweep)\b/i.test(q)) return 'servo';
+  if (/\b(led|blink|blinking|strobe|light)\b/i.test(q)) return 'led';
+
+  // 3. Fallback to active lab in workbench
+  return currentLabId || 'led';
+}
+
+export function generateProceduralSketch(query: string, snapshot: WorkbenchStateSnapshot): GeneratedSketch {
+  const q = query.toLowerCase();
+  const labId = resolveTargetLabId(query, snapshot.activeLabId);
+
+  // Parameter extraction
+  const delayMatch = q.match(/(\d+)\s*(?:ms|milliseconds?)/i);
+  let delayMs = delayMatch ? parseInt(delayMatch[1], 10) : null;
+  if (!delayMs) {
+    if (q.includes('faster') || q.includes('fast')) delayMs = 150;
+    else if (q.includes('slower') || q.includes('slow')) delayMs = 2000;
+    else if (q.includes('strobe')) delayMs = 50;
+  }
+
+  const pinMatch = q.match(/pins?\s*(\d+)/i);
+  const customPin = pinMatch ? parseInt(pinMatch[1], 10) : null;
+
+  const thresholdMatch = q.match(/threshold\s*(?:of\s*)?(\d+)/i) || q.match(/(\d+)\s*(?:c|degrees?|cm|ppm|%|lux)/i);
+  const customThreshold = thresholdMatch ? parseInt(thresholdMatch[1], 10) : null;
+
+  const isDualLed = q.includes('2 led') || q.includes('two led') || q.includes('dual led') || q.includes('alternate');
+  const isHeartbeat = q.includes('heartbeat');
+
+  let code = '';
+  let title = '';
+  let description = '';
+
+  switch (labId) {
+    case 'led': {
+      if (isDualLed) {
+        title = 'Dual LED Alternating Flasher';
+        description = 'Controls two separate digital LEDs (Pins 13 and 12) alternating in rhythm.';
+        code = `// Generated by Sparky AI Coach: Dual LED Alternating Blink
+const int LED1_PIN = 13;
+const int LED2_PIN = 12;
+
+void setup() {
+    pinMode(LED1_PIN, OUTPUT);
+    pinMode(LED2_PIN, OUTPUT);
+}
+
+void loop() {
+    // LED 1 ON, LED 2 OFF
+    digitalWrite(LED1_PIN, HIGH);
+    digitalWrite(LED2_PIN, LOW);
+    delay(${delayMs || 500});
+
+    // LED 1 OFF, LED 2 ON
+    digitalWrite(LED1_PIN, LOW);
+    digitalWrite(LED2_PIN, HIGH);
+    delay(${delayMs || 500});
+}`;
+      } else if (isHeartbeat) {
+        title = 'Human Heartbeat Double-Pulse LED';
+        description = 'Simulates a biological human cardiac double-pulse rhythm (lub-dub).';
+        code = `// Generated by Sparky AI Coach: Human Heartbeat LED Rhythm
+const int LED_PIN = ${customPin || 13};
+
+void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    // First beat (Lub)
+    digitalWrite(LED_PIN, HIGH);
+    delay(150);
+    digitalWrite(LED_PIN, LOW);
+    delay(150);
+
+    // Second beat (Dub)
+    digitalWrite(LED_PIN, HIGH);
+    delay(150);
+    digitalWrite(LED_PIN, LOW);
+    delay(650);
+}`;
+      } else {
+        const d = delayMs || 1000;
+        const p = customPin || 13;
+        title = `Digital LED Blink (${d}ms on Pin ${p})`;
+        description = `Configures Pin ${p} as digital OUTPUT, toggling HIGH (+5V) and LOW (0V) with ${d}ms delay.`;
+        code = `// Generated by Sparky AI Coach: LED Digital Blink
+const int LED_PIN = ${p};
+
+void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    digitalWrite(LED_PIN, HIGH); // Turn LED ON (+5V)
+    delay(${d});
+    digitalWrite(LED_PIN, LOW);  // Turn LED OFF (0V)
+    delay(${d});
+}`;
+      }
+      break;
+    }
+
+    case 'servo': {
+      title = 'SG90 Micro Servo PWM Sweep';
+      description = 'Uses the Arduino Servo library to smoothly sweep between 0° and 180° on PWM Pin 9.';
+      code = `// Generated by Sparky AI Coach: SG90 Micro Servo Sweep
+#include <Servo.h>
+
+Servo myServo;
+const int SERVO_PIN = ${customPin || 9};
+
+void setup() {
+    myServo.attach(SERVO_PIN);
+}
+
+void loop() {
+    // Forward sweep from 0 to 180 degrees
+    for (int pos = 0; pos <= 180; pos += 5) {
+        myServo.write(pos);
+        delay(15);
+    }
+    // Reverse sweep from 180 to 0 degrees
+    for (int pos = 180; pos >= 0; pos -= 5) {
+        myServo.write(pos);
+        delay(15);
+    }
+}`;
+      break;
+    }
+
+    case 'button': {
+      title = 'Pushbutton Digital Input (INPUT_PULLUP)';
+      description = 'Reads active-LOW pushbutton on Pin 2 with internal pullup resistor, driving LED on Pin 13.';
+      code = `// Generated by Sparky AI Coach: Pushbutton with Internal Pullup
+const int BUTTON_PIN = ${customPin || 2};
+const int LED_PIN = 13;
+
+void setup() {
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    int buttonState = digitalRead(BUTTON_PIN);
+    // Active LOW: Pressed button connects input to Ground (0V)
+    if (buttonState == LOW) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+    }
+}`;
+      break;
+    }
+
+    case 'pot': {
+      title = 'Potentiometer ADC to PWM LED Dimmer';
+      description = 'Reads 10-bit analog voltage (0-1023) from Potentiometer A0 and maps to 8-bit PWM (0-255).';
+      code = `// Generated by Sparky AI Coach: Potentiometer ADC to PWM Dimmer
+const int POT_PIN = A0;
+const int LED_PIN = ${customPin || 9}; // Hardware PWM Pin ~
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    int rawVal = analogRead(POT_PIN);
+    int pwmVal = map(rawVal, 0, 1023, 0, 255);
+    analogWrite(LED_PIN, pwmVal);
+
+    Serial.print("Pot ADC: ");
+    Serial.print(rawVal);
+    Serial.print(" -> PWM: ");
+    Serial.println(pwmVal);
+    delay(50);
+}`;
+      break;
+    }
+
+    case 'buzzer': {
+      title = 'Piezo Buzzer Multi-Tone Siren Melody';
+      description = 'Uses tone() and noTone() to generate square-wave audio frequencies on digital Pin 8.';
+      code = `// Generated by Sparky AI Coach: Piezo Buzzer Siren Alarm
+const int BUZZER_PIN = ${customPin || 8};
+
+void setup() {
+    pinMode(BUZZER_PIN, OUTPUT);
+}
+
+void loop() {
+    tone(BUZZER_PIN, 440, 200); delay(250); // Note A4
+    tone(BUZZER_PIN, 880, 200); delay(250); // Note A5
+    tone(BUZZER_PIN, 1320, 200); delay(250); // Note E6
+    noTone(BUZZER_PIN);
+    delay(1000);
+}`;
+      break;
+    }
+
+    case 'cad': {
+      title = 'Parametric Robotics Servo Bracket (OpenSCAD)';
+      description = 'Generates 3D CAD CSG solid model with mounting holes and servo motor cutout.';
+      code = `// Generated by Sparky AI Coach: Parametric Robotics Servo Bracket
+$fn = 50;
+
+difference() {
+    // Main solid block
+    cube([40, 40, 12], center = true);
+    // Center servo cutout
+    cylinder(h = 20, r = 8, center = true);
+    // Mounting screw holes
+    translate([14, 14, 0]) cylinder(h = 20, r = 1.6, center = true);
+    translate([-14, -14, 0]) cylinder(h = 20, r = 1.6, center = true);
+}`;
+      break;
+    }
+
+    case 'dmm': {
+      title = 'Digital Multimeter DC Voltmeter';
+      description = 'Reads circuit probe voltage from Analog Pin A0 and prints calibrated volts to Serial.';
+      code = `// Generated by Sparky AI Coach: Digital Multimeter Voltmeter
+const int PROBE_PIN = A0;
+
+void setup() {
+    Serial.begin(9600);
+    Serial.println("--- SPARKBYTE DIGITAL MULTIMETER ---");
+}
+
+void loop() {
+    int raw = analogRead(PROBE_PIN);
+    float voltage = (raw / 1023.0) * 5.0;
+
+    Serial.print("DMM Measured Voltage: ");
+    Serial.print(voltage, 2);
+    Serial.println(" V");
+    delay(250);
+}`;
+      break;
+    }
+
+    case 'ldr': {
+      const thresh = customThreshold || 500;
+      title = `LDR Dusk-to-Dawn Smart Nightlight (Threshold: ${thresh})`;
+      description = `Monitors ambient light via photoresistor divider on A0 and triggers LED when dark.`;
+      code = `// Generated by Sparky AI Coach: LDR Dusk-to-Dawn Nightlight
+const int LDR_PIN = A0;
+const int LED_PIN = ${customPin || 13};
+const int DARK_THRESHOLD = ${thresh};
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    int lightLevel = analogRead(LDR_PIN);
+    Serial.print("Ambient Light: ");
+    Serial.println(lightLevel);
+
+    if (lightLevel < DARK_THRESHOLD) {
+        digitalWrite(LED_PIN, HIGH); // Dark outside: Nightlight ON
+    } else {
+        digitalWrite(LED_PIN, LOW);  // Daytime: Nightlight OFF
+    }
+    delay(100);
+}`;
+      break;
+    }
+
+    case 'rgb': {
+      title = 'RGB Multi-Color PWM Color Cycler';
+      description = 'Controls Red (Pin 9), Green (Pin 10), and Blue (Pin 11) PWM channels for full spectrum mixing.';
+      code = `// Generated by Sparky AI Coach: RGB Multi-Color PWM Cycler
+const int RED_PIN = 9;
+const int GREEN_PIN = 10;
+const int BLUE_PIN = 11;
+
+void setup() {
+    pinMode(RED_PIN, OUTPUT);
+    pinMode(GREEN_PIN, OUTPUT);
+    pinMode(BLUE_PIN, OUTPUT);
+}
+
+void loop() {
+    setColor(255, 0, 0); delay(700);   // Pure Red
+    setColor(0, 255, 0); delay(700);   // Pure Green
+    setColor(0, 0, 255); delay(700);   // Pure Blue
+    setColor(255, 180, 0); delay(700); // Warm Amber
+    setColor(0, 255, 255); delay(700); // Sky Cyan
+    setColor(180, 0, 255); delay(700); // Electric Purple
+}
+
+void setColor(int r, int g, int b) {
+    analogWrite(RED_PIN, r);
+    analogWrite(GREEN_PIN, g);
+    analogWrite(BLUE_PIN, b);
+}`;
+      break;
+    }
+
+    case 'temp': {
+      const thresh = customThreshold || 30;
+      title = `LM35/TMP36 Temperature Fan Controller (Threshold: ${thresh}°C)`;
+      description = `Reads analog temperature sensor on A0 and throttles PWM cooling fan on Pin 6.`;
+      code = `// Generated by Sparky AI Coach: Temperature Fan Controller
+const int TEMP_PIN = A0;
+const int FAN_PIN = ${customPin || 6}; // Hardware PWM ~
+const float SETPOINT = ${thresh}.0;
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(FAN_PIN, OUTPUT);
+}
+
+void loop() {
+    int raw = analogRead(TEMP_PIN);
+    float voltage = (raw / 1023.0) * 5.0;
+    float tempC = (voltage - 0.5) * 100.0;
+
+    Serial.print("Temperature: ");
+    Serial.print(tempC, 1);
+    Serial.println(" C");
+
+    if (tempC > SETPOINT) {
+        int fanSpeed = map((int)tempC, (int)SETPOINT, 60, 100, 255);
+        analogWrite(FAN_PIN, constrain(fanSpeed, 0, 255));
+    } else {
+        analogWrite(FAN_PIN, 0);
+    }
+    delay(200);
+}`;
+      break;
+    }
+
+    case 'sonar': {
+      const thresh = customThreshold || 20;
+      title = `HC-SR04 Ultrasonic Sonar Obstacle Alarm (Threshold: ${thresh}cm)`;
+      description = `Emits 10µs sound ping on TRIG Pin 9, calculates flight time on ECHO Pin 10, and beeps alarm on Pin 8.`;
+      code = `// Generated by Sparky AI Coach: HC-SR04 Sonar Radar
+const int TRIG_PIN = 9;
+const int ECHO_PIN = 10;
+const int BUZZER_PIN = ${customPin || 8};
+const int SAFE_DISTANCE = ${thresh};
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+    pinMode(BUZZER_PIN, OUTPUT);
+}
+
+void loop() {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    long duration = pulseIn(ECHO_PIN, HIGH);
+    int distance = duration / 58.2;
+
+    Serial.print("Distance: ");
+    Serial.print(distance);
+    Serial.println(" cm");
+
+    if (distance > 0 && distance < SAFE_DISTANCE) {
+        tone(BUZZER_PIN, 1000, 100);
+    } else {
+        noTone(BUZZER_PIN);
+    }
+    delay(100);
+}`;
+      break;
+    }
+
+    case 'ir': {
+      title = 'IR Infrared Proximity Sensor';
+      description = 'Reads digital IR obstacle sensor on Pin 2 and triggers indicator LED on Pin 13.';
+      code = `// Generated by Sparky AI Coach: IR Proximity Sensor
+const int IR_PIN = ${customPin || 2};
+const int LED_PIN = 13;
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(IR_PIN, INPUT);
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    int obstacle = digitalRead(IR_PIN);
+    // Active LOW: 0 = Obstacle detected in front of IR diode
+    if (obstacle == LOW) {
+        digitalWrite(LED_PIN, HIGH);
+        Serial.println("OBSTACLE DETECTED!");
+    } else {
+        digitalWrite(LED_PIN, LOW);
+        Serial.println("Clear");
+    }
+    delay(100);
+}`;
+      break;
+    }
+
+    case 'slicer': {
+      title = '3D Printer Calibration Toolpath (G-Code)';
+      description = 'Generates G-code instructions for 200°C nozzle, 60°C heated bed, and perimeter toolpath.';
+      code = `; Generated by Sparky AI Coach: 3D Printer G-Code
+G21 ; Metric millimeters
+G90 ; Absolute coordinates
+M104 S200 ; Nozzle heater 200C
+M140 S60  ; Heated bed 60C
+G28 ; Home XYZ
+G1 Z0.20 F1200 ; First layer height
+G1 X100 Y100 E5 F1500 ; Purge line
+G1 X120 Y100 E8 F1800 ; Edge 1
+G1 X120 Y120 E11 F1800 ; Edge 2
+G1 X100 Y120 E14 F1800 ; Edge 3
+G1 X100 Y100 E17 F1800 ; Edge 4
+M104 S0 ; Cooldown
+M140 S0
+M84 ; Motors off`;
+      break;
+    }
+
+    case 'dht': {
+      title = 'DHT11 Climate Telemetry & Exhaust Controller';
+      description = 'Reads temperature and relative humidity telemetry, activating exhaust fan on Pin 6.';
+      code = `// Generated by Sparky AI Coach: DHT11 Climate Controller
+const int DHT_PIN = 7;
+const int FAN_PIN = ${customPin || 6};
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(FAN_PIN, OUTPUT);
+}
+
+void loop() {
+    float temp = 27.5;
+    float humidity = 68.0;
+
+    Serial.print("Temp: ");
+    Serial.print(temp, 1);
+    Serial.print(" C | Humidity: ");
+    Serial.print(humidity, 1);
+    Serial.println(" %");
+
+    if (temp > 28.0 || humidity > 70.0) {
+        analogWrite(FAN_PIN, 220);
+    } else {
+        analogWrite(FAN_PIN, 0);
+    }
+    delay(500);
+}`;
+      break;
+    }
+
+    case 'gas': {
+      const thresh = customThreshold || 350;
+      title = `MQ-2 Smoke & Flammable Gas Alarm (Threshold: ${thresh} PPM)`;
+      description = `Reads analog gas concentration on A0 and triggers audio siren on Pin 8 and strobe on Pin 13.`;
+      code = `// Generated by Sparky AI Coach: MQ-2 Gas Alarm
+const int GAS_PIN = A0;
+const int BUZZER_PIN = ${customPin || 8};
+const int LED_PIN = 13;
+const int ALARM_THRESHOLD = ${thresh};
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(BUZZER_PIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+    int gasPPM = analogRead(GAS_PIN);
+    Serial.print("Gas PPM: ");
+    Serial.println(gasPPM);
+
+    if (gasPPM > ALARM_THRESHOLD) {
+        digitalWrite(LED_PIN, HIGH);
+        tone(BUZZER_PIN, 1200, 150);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+        noTone(BUZZER_PIN);
+    }
+    delay(150);
+}`;
+      break;
+    }
+
+    case 'lcd': {
+      title = 'I2C 16x2 LiquidCrystal Display Telemetry';
+      description = 'Initializes I2C LCD on address 0x27 and writes real-time live system uptime counter.';
+      code = `// Generated by Sparky AI Coach: I2C 16x2 LCD Counter
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+    lcd.init();
+    lcd.backlight();
+    lcd.setCursor(0, 0);
+    lcd.print("SPARKBYTE STUDIO");
+    lcd.setCursor(0, 1);
+    lcd.print("SYSTEM READY");
+}
+
+void loop() {
+    lcd.setCursor(0, 1);
+    lcd.print("Uptime: ");
+    lcd.print(millis() / 1000);
+    lcd.print("s   ");
+    delay(500);
+}`;
+      break;
+    }
+
+    case 'oled': {
+      title = 'SSD1306 128x64 OLED Graphics Display';
+      description = 'Initializes I2C OLED on address 0x3C and draws headers, geometry, and real-time clock.';
+      code = `// Generated by Sparky AI Coach: SSD1306 128x64 OLED
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
+
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
+
+void setup() {
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("ATL INNOVATION LAB");
+    display.drawLine(0, 12, 127, 12, WHITE);
+    display.display();
+}
+
+void loop() {
+    display.setCursor(0, 20);
+    display.print("Seconds: ");
+    display.println(millis() / 1000);
+    display.display();
+    delay(500);
+}`;
+      break;
+    }
+
+    case 'soil': {
+      const thresh = customThreshold || 35;
+      title = `Soil Moisture Automatic Irrigation Pump Relay (Threshold: ${thresh}%)`;
+      description = `Monitors volumetric soil moisture on A0 and controls active-LOW optocoupled relay pump on Pin 7.`;
+      code = `// Generated by Sparky AI Coach: Automatic Irrigation Pump Relay
+const int SOIL_PIN = A0;
+const int RELAY_PIN = ${customPin || 7}; // Active-LOW relay module
+const int DRY_THRESHOLD = ${thresh};
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, HIGH); // Active-LOW: Relay OFF at boot
+}
+
+void loop() {
+    int raw = analogRead(SOIL_PIN);
+    int moisture = map(raw, 1023, 0, 0, 100);
+
+    Serial.print("Soil Moisture: ");
+    Serial.print(moisture);
+    Serial.println("%");
+
+    if (moisture < DRY_THRESHOLD) {
+        digitalWrite(RELAY_PIN, LOW); // Active-LOW: PUMP ON
+        Serial.println("-> Relay Energized: Pumping Water");
+    } else {
+        digitalWrite(RELAY_PIN, HIGH); // PUMP OFF
+    }
+    delay(300);
+}`;
+      break;
+    }
+
+    case 'motor': {
+      title = 'L298N Dual H-Bridge DC Motor Driver';
+      description = 'Controls direction (IN1/IN2 Pins 8/7) and PWM speed (ENA Pin 9) with forward, reverse, and brake.';
+      code = `// Generated by Sparky AI Coach: L298N DC Motor Driver
+const int ENA_PIN = 9; // PWM Speed ~
+const int IN1_PIN = 8;
+const int IN2_PIN = 7;
+
+void setup() {
+    pinMode(ENA_PIN, OUTPUT);
+    pinMode(IN1_PIN, OUTPUT);
+    pinMode(IN2_PIN, OUTPUT);
+}
+
+void loop() {
+    // Forward Full Speed
+    digitalWrite(IN1_PIN, HIGH);
+    digitalWrite(IN2_PIN, LOW);
+    analogWrite(ENA_PIN, 255);
+    delay(1500);
+
+    // Reverse Half Speed
+    digitalWrite(IN1_PIN, LOW);
+    digitalWrite(IN2_PIN, HIGH);
+    analogWrite(ENA_PIN, 150);
+    delay(1500);
+
+    // Brake / Stop
+    digitalWrite(IN1_PIN, LOW);
+    digitalWrite(IN2_PIN, LOW);
+    analogWrite(ENA_PIN, 0);
+    delay(1000);
+}`;
+      break;
+    }
+
+    case 'imu': {
+      title = 'MPU-6050 6-Axis Gyroscope & Accelerometer';
+      description = 'Communicates over I2C bus (0x68) to read raw 16-bit 3-axis accelerometer and gyro registers.';
+      code = `// Generated by Sparky AI Coach: MPU-6050 IMU Telemetry
+#include <Wire.h>
+
+const int MPU_ADDR = 0x68;
+
+void setup() {
+    Serial.begin(9600);
+    Wire.begin();
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(0x6B); // Power management register
+    Wire.write(0);    // Wake up MPU-6050
+    Wire.endTransmission(true);
+    Serial.println("MPU-6050 Initialized.");
+}
+
+void loop() {
+    Wire.beginTransmission(MPU_ADDR);
+    Wire.write(0x3B);
+    Wire.endTransmission(false);
+    Wire.requestFrom(MPU_ADDR, 6, true);
+
+    int16_t ax = Wire.read() << 8 | Wire.read();
+    int16_t ay = Wire.read() << 8 | Wire.read();
+    int16_t az = Wire.read() << 8 | Wire.read();
+
+    Serial.print("AccX: "); Serial.print(ax);
+    Serial.print(" | AccY: "); Serial.print(ay);
+    Serial.print(" | AccZ: "); Serial.println(az);
+    delay(100);
+}`;
+      break;
+    }
+
+    case 'rfid': {
+      title = 'MFRC522 SPI RFID Security Access Gate';
+      description = 'Initializes SPI RFID module, reads 4-byte card UID, and verifies against authorized MASTER_UID.';
+      code = `// Generated by Sparky AI Coach: MFRC522 RFID Security Gate
+#include <SPI.h>
+#include <MFRC522.h>
+
+#define SS_PIN 10
+#define RST_PIN 9
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+const byte MASTER_UID[4] = {0xA3, 0x5B, 0x12, 0x09};
+const int ACCESS_LED = 13;
+
+void setup() {
+    Serial.begin(9600);
+    SPI.begin();
+    rfid.PCD_Init();
+    pinMode(ACCESS_LED, OUTPUT);
+    Serial.println("Ready: Tap RFID Card...");
+}
+
+void loop() {
+    if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) return;
+
+    bool authorized = true;
+    for (byte i = 0; i < 4; i++) {
+        if (rfid.uid.uidByte[i] != MASTER_UID[i]) authorized = false;
+    }
+
+    if (authorized) {
+        Serial.println("ACCESS GRANTED: Welcome, Student!");
+        digitalWrite(ACCESS_LED, HIGH);
+        delay(1000);
+        digitalWrite(ACCESS_LED, LOW);
+    } else {
+        Serial.println("ACCESS DENIED: Unauthorized Card!");
+    }
+    delay(500);
+}`;
+      break;
+    }
+
+    case 'iot': {
+      title = 'ESP8266 Wi-Fi Cloud Telemetry Gateway';
+      description = 'Sends AT commands over SoftwareSerial (Pins 2/3) to upload sensor telemetry to IoT cloud server.';
+      code = `// Generated by Sparky AI Coach: ESP8266 IoT Cloud Telemetry
+#include <SoftwareSerial.h>
+
+SoftwareSerial esp(2, 3); // RX, TX
+const int SENSOR_PIN = A0;
+
+void setup() {
+    Serial.begin(9600);
+    esp.begin(9600);
+    Serial.println("Connecting to Cloud Server via ESP8266...");
+    esp.println("AT");
+    delay(500);
+    esp.println("AT+CWMODE=1");
+    delay(500);
+}
+
+void loop() {
+    int sensorVal = analogRead(SENSOR_PIN);
+    Serial.print("Cloud Telemetry: ");
+    Serial.println(sensorVal);
+
+    esp.print("AT+CIPSTART=\"TCP\",\"cloud.sparkbyte.io\",80\\r\\n");
+    delay(1000);
+    String payload = "GET /telemetry?val=" + String(sensorVal) + " HTTP/1.1\\r\\n\\r\\n";
+    esp.print("AT+CIPSEND=" + String(payload.length()) + "\\r\\n");
+    delay(500);
+    esp.print(payload);
+    delay(4000);
+}`;
+      break;
+    }
+
+    default: {
+      title = 'Arduino Sketch Generator';
+      description = 'Default synthesized Arduino C++ sketch.';
+      code = `void setup() {\n    pinMode(13, OUTPUT);\n}\nvoid loop() {\n    digitalWrite(13, HIGH);\n    delay(1000);\n    digitalWrite(13, LOW);\n    delay(1000);\n}`;
+    }
+  }
+
+  return { title, description, code, labId };
+}
+
 // ============================================================================
 // 4. MULTI-TURN CONVERSATIONAL INTENT & CURRICULUM REASONER
 // ============================================================================
@@ -681,21 +1531,19 @@ export async function askAiCoach(
 ): Promise<AiCoachMessage> {
   const queryLower = studentQuery.toLowerCase().trim();
 
-  // 1. Language Fast Path: Hindi queries
-  if (queryLower.includes('hindi') || queryLower.includes('हिंदी') || config.language === 'hi') {
-    return {
-      id: `msg-${Date.now()}`,
-      role: 'assistant',
-      content: generateHindiExplanation(snapshot),
-      timestamp: Date.now(),
-      source: 'offline_rule'
-    };
-  }
-
-  // 2. Specific Line Inspection Intent: "explain line 12", "what does line 5 do", "line 14"
+  // 1. Specific Line Inspection Intent: "explain line 12", "what does line 5 do", "line 14"
   const lineMatch = queryLower.match(/(?:explain|what (?:is|does))\s*(?:on\s*)?line\s*(\d+)/) || queryLower.match(/^line\s*(\d+)$/);
   if (lineMatch) {
     const lineNum = parseInt(lineMatch[1], 10);
+    if (queryLower.includes('hindi') || queryLower.includes('हिंदी') || queryLower.includes('samjhao') || config.language === 'hi') {
+      return {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: inspectSpecificLineHindi(lineNum, snapshot),
+        timestamp: Date.now(),
+        source: 'offline_rule'
+      };
+    }
     return {
       id: `msg-${Date.now()}`,
       role: 'assistant',
@@ -705,7 +1553,51 @@ export async function askAiCoach(
     };
   }
 
-  // 3. Variable Inspection Intent: "what is fanPWM", "what is val", "explain melody"
+  // 2. Procedural Code Generation Intent (Zero API Key): "generate code for lab 1 led", "make an LED blink faster", "control 2 LEDs"
+  if (isCodeGenerationIntent(studentQuery)) {
+    const gen = generateProceduralSketch(studentQuery, snapshot);
+    const reply = `### ✨ Synthesized Arduino C++ Sketch: ${gen.title}
+
+${gen.description}
+
+\`\`\`cpp
+${gen.code}
+\`\`\`
+
+Click **[ ✨ Insert Code into Editor ]** below to load this sketch directly into your Monaco Editor and compile it!`;
+
+    return {
+      id: `msg-${Date.now()}`,
+      role: 'assistant',
+      content: reply,
+      timestamp: Date.now(),
+      source: 'offline_rule',
+      suggestedFix: {
+        label: 'Insert Code into Editor',
+        description: gen.title,
+        newCode: gen.code
+      }
+    };
+  }
+
+  // 3. Language Fast Path: Hindi / Hinglish queries
+  if (
+    queryLower.includes('hindi') ||
+    queryLower.includes('हिंदी') ||
+    queryLower.includes('samjhao') ||
+    queryLower.includes('batao') ||
+    config.language === 'hi'
+  ) {
+    return {
+      id: `msg-${Date.now()}`,
+      role: 'assistant',
+      content: generateHindiExplanation(snapshot),
+      timestamp: Date.now(),
+      source: 'offline_rule'
+    };
+  }
+
+  // 4. Variable Inspection Intent: "what is fanPWM", "what is val", "explain melody"
   const varMatch = studentQuery.match(/(?:what is|explain variable|value of)\s+([a-zA-Z_]\w*)/i);
   if (varMatch) {
     const candidateVar = varMatch[1];
@@ -726,7 +1618,7 @@ export async function askAiCoach(
     }
   }
 
-  // 4. Function Explanation Intent: "what is pinMode", "how does map work"
+  // 5. Function Explanation Intent: "what is pinMode", "how does map work"
   const funcKeywords = [
     'pinmode', 'digitalwrite', 'digitalread', 'analogwrite', 'analogread',
     'map', 'constrain', 'pulsein', 'tone', 'notone', 'delay', 'millis'
@@ -743,16 +1635,20 @@ export async function askAiCoach(
     }
   }
 
-  // 5. One-Click Diagnostic Queries: "Why isn't my circuit working?", "Debug", etc.
+  // 6. One-Click Diagnostic Queries: "Why isn't my circuit working?", "Debug", etc.
   const diag = runDeterministicDiagnostics(snapshot);
 
-  if (
+  const isWhyNotWorking =
     queryLower.includes("why isn't my circuit working") ||
-    queryLower.includes('why not working') ||
-    queryLower.includes('debug') ||
-    queryLower.includes('find bugs') ||
-    queryLower.includes('diagnose')
-  ) {
+    queryLower.includes("why isn't it working") ||
+    queryLower.includes("why is it not working") ||
+    queryLower.includes("why not working") ||
+    queryLower.includes("not working") ||
+    queryLower.includes("debug") ||
+    queryLower.includes("find bugs") ||
+    queryLower.includes("diagnose");
+
+  if (isWhyNotWorking) {
     let reply = `### 🔍 Live Circuit & Code Diagnostic Report\n\n**${diag.summary}**\n\n`;
 
     if (diag.issues.length === 0) {
@@ -760,6 +1656,20 @@ export async function askAiCoach(
       reply += `* Microcontroller Clock: **${snapshot.isRunning ? 'RUNNING (Active)' : 'STOPPED (Click Start Simulation)'}**\n`;
       reply += `* Loop Cycles Completed: **${snapshot.loopCount}**\n`;
       reply += `* Current Output: LED=${snapshot.hardwareState.ledOn ? 'ON' : 'OFF'}, Servo=${snapshot.hardwareState.servoAngle}°\n\n`;
+
+      // Live sensor-to-actuator threshold telemetry tips
+      if (snapshot.activeLabId === 'temp') {
+        reply += `* 🌡️ **Temperature Telemetry:** Sensor is currently at **${snapshot.hardwareState.temperatureC}°C**. If your code triggers the fan when \`temp > 30.0\`, drag the temperature slider above 30°C to activate the fan!\n\n`;
+      } else if (snapshot.activeLabId === 'soil') {
+        reply += `* 🌱 **Soil Moisture Telemetry:** Moisture is currently **${snapshot.hardwareState.soilMoisturePct}%**. Active-LOW relay pump energizes when moisture drops below threshold (e.g. 35%). Drag soil moisture lower to trigger watering!\n\n`;
+      } else if (snapshot.activeLabId === 'sonar') {
+        reply += `* 🦇 **Sonar Distance Telemetry:** Obstacle is at **${snapshot.hardwareState.distanceCm}cm**. The buzzer alarm sounds when obstacle distance is below threshold (e.g. 20cm). Move obstacle closer!\n\n`;
+      } else if (snapshot.activeLabId === 'ldr') {
+        reply += `* 🌙 **LDR Light Telemetry:** Ambient light is **${snapshot.hardwareState.ldrRaw} Lux**. Nightlight triggers when light drops below dark threshold (e.g. 500 Lux). Drag brightness down!\n\n`;
+      } else if (snapshot.activeLabId === 'gas') {
+        reply += `* 🚨 **MQ-2 Gas Telemetry:** Concentration is **${snapshot.hardwareState.gasPpm} PPM**. Alarm buzzer sounds when gas exceeds threshold (e.g. 350 PPM). Drag gas slider up!\n\n`;
+      }
+
       reply += `Want to try an experiment? Check out the safe suggestions below!`;
     } else {
       diag.issues.forEach((issue, i) => {

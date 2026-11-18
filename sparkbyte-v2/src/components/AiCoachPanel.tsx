@@ -123,9 +123,35 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // Listen to activeLabId transitions in the store and append subtle context divider
+  const prevLabIdRef = useRef(activeLabId);
+  useEffect(() => {
+    if (prevLabIdRef.current !== activeLabId) {
+      const s = useWorkbenchStore.getState();
+      const lab = LAB_MAP[s.activeLabId] || Object.values(LAB_MAP)[0];
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-divider-${Date.now()}`,
+          role: 'system',
+          content: `🔄 **Switched to Lab: ${lab.title}** (${lab.name})\n*Hardware environment & Monaco C++ context updated. Sparky is now focused on ${lab.name}.*`,
+          timestamp: Date.now(),
+          source: 'system'
+        }
+      ]);
+      prevLabIdRef.current = activeLabId;
+    }
+  }, [activeLabId]);
+
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputQuery).trim();
     if (!query || loading) return;
+
+    // Direct, live snapshot from store
+    const snapshot = getSnapshot();
+    if (prevLabIdRef.current !== snapshot.activeLabId) {
+      prevLabIdRef.current = snapshot.activeLabId;
+    }
 
     const userMsg: AiCoachMessage = {
       id: `msg-user-${Date.now()}`,
@@ -140,7 +166,6 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
     setLoading(true);
 
     try {
-      const snapshot = getSnapshot();
       const aiReply = await askAiCoach(query, snapshot, config);
       setMessages((prev) => [...prev, aiReply]);
     } catch (err: unknown) {
@@ -233,9 +258,9 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
   // Quick diagnostic chips
   const quickChips = [
     { label: "Why isn't my circuit working?", icon: AlertCircle, query: "Why isn't my circuit working?" },
+    { label: "Generate code for this lab", icon: Sparkles, query: "Generate code for this lab" },
     { label: "Explain code line-by-line", icon: Code2, query: "Explain this code line-by-line" },
-    { label: "Safe experiment ideas", icon: Lightbulb, query: "What happens if I change the values?" },
-    { label: "Explain in Hindi (हिंदी)", icon: Sparkles, query: "Explain in Hindi (हिंदी)" }
+    { label: "Hindi mein samjhao (हिंदी)", icon: Sparkles, query: "Hindi mein samjhao" }
   ];
 
   // If collapsed: show sleek floating pill button on bottom-right
@@ -372,41 +397,62 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
 
       {/* Chat Messages Body */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 font-sans text-xs min-h-0 bg-gradient-to-b from-slate-900/60 to-slate-950/80">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex flex-col ${
-              msg.role === 'user' ? 'items-end' : 'items-start'
-            }`}
-          >
-            {/* Sender Meta Tag */}
-            <div className="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-slate-500 font-mono">
-              {msg.role === 'user' ? (
-                <span>You</span>
-              ) : (
-                <>
-                  <Bot className="w-3 h-3 text-violet-400 stroke-[2]" />
-                  <span className="font-semibold text-slate-300">Sparky</span>
-                  <span className="px-1 rounded bg-slate-800 text-[9px] text-slate-400">
-                    {msg.source === 'gemini'
-                      ? 'Gemini 2.5'
-                      : msg.source === 'openai'
-                      ? 'OpenAI'
-                      : 'Offline Rule'}
-                  </span>
-                </>
-              )}
-            </div>
+        {messages.map((msg) => {
+          if (msg.role === 'system') {
+            return (
+              <div key={msg.id} className="w-full flex items-center justify-center my-2 select-none">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/60 shadow-sm text-[10.5px] text-slate-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                  <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(msg.content) }} />
+                </div>
+              </div>
+            );
+          }
 
-            {/* Bubble Content */}
+          return (
             <div
-              className={`max-w-[90%] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md border ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white border-blue-500/50 rounded-br-none'
-                  : 'bg-slate-800/90 text-slate-200 border-slate-700/80 rounded-bl-none'
+              key={msg.id}
+              className={`flex flex-col ${
+                msg.role === 'user' ? 'items-end' : 'items-start'
               }`}
             >
-              <FormattedMessageContent content={msg.content} />
+              {/* Sender Meta Tag */}
+              <div className="flex items-center gap-1.5 mb-1 px-1 text-[10px] text-slate-500 font-mono">
+                {msg.role === 'user' ? (
+                  <span>You</span>
+                ) : (
+                  <>
+                    <Bot className="w-3 h-3 text-violet-400 stroke-[2]" />
+                    <span className="font-semibold text-slate-300">Sparky</span>
+                    <span className="px-1 rounded bg-slate-800 text-[9px] text-slate-400">
+                      {msg.source === 'gemini'
+                        ? 'Gemini 2.5'
+                        : msg.source === 'openai'
+                        ? 'OpenAI'
+                        : 'Offline Rule'}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Bubble Content */}
+              <div
+                className={`max-w-[90%] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md border ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white border-blue-500/50 rounded-br-none'
+                    : 'bg-slate-800/90 text-slate-200 border-slate-700/80 rounded-bl-none'
+                }`}
+              >
+                <FormattedMessageContent
+                  content={msg.content}
+                  onApplyCode={(code) => handleApplySuggestedFix({
+                    label: 'Insert Code into Editor',
+                    description: 'Procedural sketch synthesized by Sparky',
+                    newCode: code
+                  })}
+                  onCopyText={handleCopyText}
+                  copiedId={copiedId}
+                />
 
               {/* One-Click Apply Suggested Fix Banner */}
               {msg.suggestedFix && (
@@ -499,7 +545,8 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
               </button>
             )}
           </div>
-        ))}
+        );
+      })}
 
         {/* Loading Spinner */}
         {loading && (
@@ -721,50 +768,159 @@ const AiCoachSettingsTray: React.FC<SettingsTrayProps> = ({
 };
 
 // ============================================================================
-// FORMATTED MESSAGE CONTENT
+// FORMATTED MESSAGE CONTENT & SYNTAX CODE CARD
 // ============================================================================
 
-const FormattedMessageContent: React.FC<{ content: string }> = ({ content }) => {
-  const parts = content.split('\n');
+interface FormattedMessageContentProps {
+  content: string;
+  onApplyCode?: (code: string) => void;
+  onCopyText?: (id: string, text: string) => void;
+  copiedId?: string | null;
+}
+
+const FormattedMessageContent: React.FC<FormattedMessageContentProps> = ({
+  content,
+  onApplyCode,
+  onCopyText,
+  copiedId
+}) => {
+  // Parse markdown text and code blocks: ```(lang)?\n ... ```
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const segments: Array<{ type: 'text' | 'code'; text: string; lang?: string }> = [];
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({
+        type: 'text',
+        text: content.substring(lastIndex, match.index)
+      });
+    }
+    segments.push({
+      type: 'code',
+      lang: match[1] || 'cpp',
+      text: match[2].trim()
+    });
+    lastIndex = codeBlockRegex.lastIndex;
+  }
+
+  if (lastIndex < content.length) {
+    segments.push({
+      type: 'text',
+      text: content.substring(lastIndex)
+    });
+  }
 
   return (
-    <div className="space-y-1.5">
-      {parts.map((p, idx) => {
-        const trimmed = p.trim();
-        if (trimmed.startsWith('### ')) {
+    <div className="space-y-2">
+      {segments.map((seg, sIdx) => {
+        if (seg.type === 'code') {
+          const codeId = `code-block-${sIdx}`;
+          const isCopied = copiedId === codeId;
+          const displayLang =
+            seg.lang === 'scad'
+              ? 'OpenSCAD 3D Model'
+              : seg.lang === 'gcode'
+              ? 'G-Code Toolpath'
+              : 'Arduino C++ Sketch';
+
           return (
-            <h4 key={idx} className="font-bold text-slate-100 text-xs tracking-tight pt-1">
-              {trimmed.replace(/^###\s*/, '')}
-            </h4>
-          );
-        }
-        if (trimmed.startsWith('#### ')) {
-          return (
-            <h5 key={idx} className="font-semibold text-slate-200 text-[11px] pt-0.5">
-              {trimmed.replace(/^####\s*/, '')}
-            </h5>
-          );
-        }
-        if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-          return (
-            <div key={idx} className="flex items-start gap-1.5 pl-1 text-[11.5px]">
-              <span className="text-violet-400 font-bold shrink-0">&bull;</span>
-              <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(trimmed.replace(/^[*|-]\s*/, '')) }} />
+            <div
+              key={sIdx}
+              className="my-2 rounded-xl bg-slate-950 border border-slate-700/80 shadow-inner overflow-hidden select-text"
+            >
+              {/* Code Card Header Bar */}
+              <div className="px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-[10.5px] font-mono">
+                <span className="flex items-center gap-1.5 font-semibold text-slate-300">
+                  <Code2 className="w-3.5 h-3.5 text-violet-400 stroke-[2]" />
+                  {displayLang}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onCopyText?.(codeId, seg.text)}
+                    className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-colors text-[10px]"
+                    title="Copy Code to Clipboard"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+
+                  {onApplyCode && (
+                    <button
+                      onClick={() => onApplyCode(seg.text)}
+                      className="px-2.5 py-0.5 rounded bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition-all hover:scale-105 active:scale-95"
+                      title="Load sketch directly into Monaco C++ Editor and Compile"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-300" />
+                      <span>Insert Code into Editor</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Code Body */}
+              <pre className="p-3 text-[11px] font-mono text-sky-200 overflow-x-auto leading-relaxed max-h-64 selection:bg-violet-900/60 selection:text-white">
+                <code>{seg.text}</code>
+              </pre>
             </div>
           );
         }
-        if (trimmed.startsWith('> ')) {
-          return (
-            <blockquote key={idx} className="border-l-2 border-violet-500 pl-2 text-[11px] text-violet-300 italic bg-violet-500/10 py-0.5 rounded-r">
-              <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(trimmed.replace(/^>\s*/, '')) }} />
-            </blockquote>
-          );
-        }
-        if (!trimmed) {
-          return <div key={idx} className="h-1" />;
-        }
+
+        // Render Markdown Text
+        const parts = seg.text.split('\n');
         return (
-          <p key={idx} className="text-[11.5px] leading-relaxed" dangerouslySetInnerHTML={{ __html: renderInlineFormatting(trimmed) }} />
+          <div key={sIdx} className="space-y-1.5">
+            {parts.map((p, idx) => {
+              const trimmed = p.trim();
+              if (trimmed.startsWith('### ')) {
+                return (
+                  <h4 key={idx} className="font-bold text-slate-100 text-xs tracking-tight pt-1">
+                    {trimmed.replace(/^###\s*/, '')}
+                  </h4>
+                );
+              }
+              if (trimmed.startsWith('#### ')) {
+                return (
+                  <h5 key={idx} className="font-semibold text-slate-200 text-[11px] pt-0.5">
+                    {trimmed.replace(/^####\s*/, '')}
+                  </h5>
+                );
+              }
+              if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+                return (
+                  <div key={idx} className="flex items-start gap-1.5 pl-1 text-[11.5px]">
+                    <span className="text-violet-400 font-bold shrink-0">&bull;</span>
+                    <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(trimmed.replace(/^[*|-]\s*/, '')) }} />
+                  </div>
+                );
+              }
+              if (trimmed.startsWith('> ')) {
+                return (
+                  <blockquote key={idx} className="border-l-2 border-violet-500 pl-2 text-[11px] text-violet-300 italic bg-violet-500/10 py-0.5 rounded-r">
+                    <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(trimmed.replace(/^>\s*/, '')) }} />
+                  </blockquote>
+                );
+              }
+              if (!trimmed) {
+                return <div key={idx} className="h-1" />;
+              }
+              return (
+                <p key={idx} className="text-[11.5px] leading-relaxed" dangerouslySetInnerHTML={{ __html: renderInlineFormatting(trimmed) }} />
+              );
+            })}
+          </div>
         );
       })}
     </div>

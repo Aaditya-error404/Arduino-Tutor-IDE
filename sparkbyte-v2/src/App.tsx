@@ -28,6 +28,10 @@ import { CadStudioPage } from './pages/CadStudioPage';
 export const App: React.FC = () => {
   const { aboutModalOpen, setAboutModalOpen } = useWorkbenchStore();
 
+  useEffect(() => {
+    (window as any).__WORKBENCH_STORE__ = useWorkbenchStore;
+  }, []);
+
   // Lightweight Path & Hash Router for Standalone /cad-studio route
   const [isCadStudio, setIsCadStudio] = useState<boolean>(() => {
     const path = window.location.pathname.toLowerCase();
