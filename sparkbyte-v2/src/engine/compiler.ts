@@ -193,10 +193,18 @@ export function evaluateExpression(
       fusedPitch, fusedRoll, accelPitch, accelRoll, atan2, sqrt, PI, millis,
       A0, A1, A2, A3, A4, A5, HIGH, LOW, SSD1306_WHITE, SSD1306_BLACK
     );
-    return typeof result === 'boolean' ? (result ? 1 : 0) : result;
+    if (typeof result === 'boolean') return result ? 1 : 0;
+    if (typeof result === 'number') {
+      if (!isFinite(result) || isNaN(result)) return 0;
+    }
+    return result;
   } catch {
     // If expression references variable in vars directly
-    if (trimmed in vars) return vars[trimmed];
+    if (trimmed in vars) {
+      const val = vars[trimmed];
+      if (typeof val === 'number' && (!isFinite(val) || isNaN(val))) return 0;
+      return val;
+    }
     return 0;
   }
 }
@@ -444,6 +452,53 @@ export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgra
       }
 
       idx = j; // advance past for loop block
+      continue;
+    }
+
+    // Detect while loops and infinite for loops (e.g. while (1) { ... }, for(;;) { ... })
+    const whileMatch = trimmed.match(/^while\s*\(([^)]*)\)\s*\{?$/);
+    const forInfMatch = trimmed.match(/^for\s*\(\s*;\s*;\s*\)\s*\{?$/);
+    if (whileMatch || forInfMatch) {
+      const bodyLines: Array<{ lineIdx: number; raw: string; human: string }> = [];
+      let depth = 1;
+      let j = idx + 1;
+      while (j < cppLines.length) {
+        const jTrimmed = cppLines[j].trim();
+        if (jTrimmed.includes('{')) depth++;
+        if (jTrimmed.includes('}')) {
+          depth--;
+          if (depth === 0) break;
+        }
+        if (jTrimmed && !jTrimmed.startsWith('//')) {
+          bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+        }
+        j++;
+      }
+
+      const phase = currentPhase === 'setup' ? 'setup' : currentPhase === 'loop' ? 'loop' : 'setup';
+      const targetPool = phase === 'setup' ? setupSteps : loopSteps;
+
+      if (bodyLines.length === 0) {
+        // Empty spin loop: inject safe yield step so virtual clock steps without freezing
+        targetPool.push({
+          id: `inst-${idx}-spin`,
+          lineIndex: idx,
+          phase,
+          type: 'delay',
+          rawCpp: trimmed,
+          plainEnglish: 'Runaway loop idle yield',
+          durationMs: 100
+        });
+      } else {
+        for (const b of bodyLines) {
+          const bodyNodes = parseLineToNodes(b.lineIdx, phase, b.raw, b.human, functions);
+          for (const bn of bodyNodes) {
+            targetPool.push(bn);
+          }
+        }
+      }
+
+      idx = j;
       continue;
     }
 

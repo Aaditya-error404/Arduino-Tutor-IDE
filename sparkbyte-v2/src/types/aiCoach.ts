@@ -86,4 +86,6 @@ export interface WorkbenchStateSnapshot {
   hardwareState: HardwareState;
   serialLogs: string[];
   runtimeVars?: Record<string, any>;
+  watchdogTripped?: boolean;
+  watchdogError?: string | null;
 }

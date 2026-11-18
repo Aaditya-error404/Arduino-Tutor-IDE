@@ -11,6 +11,9 @@ import { LAB_MAP } from '../data/lessons';
 import { compileProgram, CompiledProgram, evaluateExpression, VariableValue } from '../engine/compiler';
 import { globalVirtualClock } from '../engine/virtualClock';
 import { getAVRRunner } from '../engine/avrRunner';
+import { buzzerAudio } from '../engine/audioEngine';
+
+export const MAX_LOOP_STEPS = 10000;
 
 function createEmptyOledBuffer(): boolean[][] {
   const buf: boolean[][] = [];
@@ -148,6 +151,12 @@ interface WorkbenchStore {
   serialConnected: boolean;
   serialLogs: string[];
 
+  // Watchdog & Sandbox Hardening State
+  totalExecutedSteps: number;
+  watchdogTripped: boolean;
+  watchdogError: string | null;
+  resetWatchdog: () => void;
+
   // Actions
   setActiveLab: (labId: string) => void;
   setActiveLesson: (lessonId: number) => void;
@@ -261,10 +270,16 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
     serialConnected: false,
     serialLogs: [],
 
+    totalExecutedSteps: 0,
+    watchdogTripped: false,
+    watchdogError: null,
+    resetWatchdog: () => set({ totalExecutedSteps: 0, watchdogTripped: false, watchdogError: null }),
+
     setActiveLab: (labId: string) => {
       const lab = LAB_MAP[labId];
       if (!lab) return;
 
+      buzzerAudio.stopTone();
       const lesson = lab.lessons[0];
       const compiled = compileProgram(lesson.defaultCode.cpp, lesson.defaultCode.human);
 
@@ -273,7 +288,9 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
 
       const initialHw: HardwareState = {
         ...INITIAL_HARDWARE_STATE,
-        activeLab: labId
+        activeLab: labId,
+        buzzerActive: false,
+        buzzerToneFreq: 0
       };
       const initialVars = extractInitialVars(compiled, initialHw);
 
@@ -292,7 +309,10 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         activeInstruction: null,
         stepRemainingDelayMs: 0,
         hardwareState: initialHw,
-        scopeBuffer: []
+        scopeBuffer: [],
+        totalExecutedSteps: 0,
+        watchdogTripped: false,
+        watchdogError: null
       });
     },
 
@@ -300,6 +320,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
       const lab = LAB_MAP[get().activeLabId];
       if (!lab) return;
 
+      buzzerAudio.stopTone();
       const clampedId = Math.max(1, Math.min(lab.lessons.length, lessonId));
       const lesson = lab.lessons[clampedId - 1] || lab.lessons[0];
       const compiled = compileProgram(lesson.defaultCode.cpp, lesson.defaultCode.human);
@@ -307,7 +328,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
       globalVirtualClock.reset();
       getAVRRunner().reset();
 
-      const currentHw = get().hardwareState;
+      const currentHw = { ...get().hardwareState, buzzerActive: false, buzzerToneFreq: 0 };
       const initialVars = extractInitialVars(compiled, currentHw);
 
       set({
@@ -323,7 +344,11 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         activeLineIndex: 0,
         activeInstruction: null,
         stepRemainingDelayMs: 0,
-        scopeBuffer: []
+        hardwareState: currentHw,
+        scopeBuffer: [],
+        totalExecutedSteps: 0,
+        watchdogTripped: false,
+        watchdogError: null
       });
     },
 
@@ -362,7 +387,10 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         vars: initialVars,
         stepIndex: 0,
         activePhase: compiled.setupSteps.length > 0 ? 'setup' : 'loop',
-        stepRemainingDelayMs: 0
+        stepRemainingDelayMs: 0,
+        totalExecutedSteps: 0,
+        watchdogTripped: false,
+        watchdogError: null
       });
     },
 
@@ -396,13 +424,16 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
     },
 
     resetSimulation: () => {
+      buzzerAudio.stopTone();
       globalVirtualClock.reset();
       getAVRRunner().reset();
 
       const { activeLabId, compiled } = get();
       const initialHw: HardwareState = {
         ...INITIAL_HARDWARE_STATE,
-        activeLab: activeLabId
+        activeLab: activeLabId,
+        buzzerActive: false,
+        buzzerToneFreq: 0
       };
       const initialVars = extractInitialVars(compiled, initialHw);
       set({
@@ -416,7 +447,10 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         activeInstruction: null,
         stepRemainingDelayMs: 0,
         hardwareState: initialHw,
-        scopeBuffer: []
+        scopeBuffer: [],
+        totalExecutedSteps: 0,
+        watchdogTripped: false,
+        watchdogError: null
       });
     },
 
@@ -480,7 +514,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
 
     onClockTick: (deltaMs, virtualTime) => {
       const state = get();
-      if (!state.isRunning || (state.isPaused && deltaMs <= 0)) return;
+      if (!state.isRunning || (state.isPaused && deltaMs <= 0) || state.watchdogTripped) return;
 
       const { compiled, hardwareState } = state;
       let remainingDelay = state.stepRemainingDelayMs - deltaMs;
@@ -495,9 +529,26 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
       let newLoopCount = state.loopCount;
       let activeInst = state.activeInstruction;
       let activeLine = state.activeLineIndex;
+      let currentSteps = state.totalExecutedSteps || 0;
 
       // Check if we need to advance to next instruction
       if (remainingDelay <= 0) {
+        currentSteps++;
+        if (currentSteps > MAX_LOOP_STEPS) {
+          globalVirtualClock.pause();
+          buzzerAudio.stopTone();
+          const alertMsg = 'Watchdog Alert: Execution halted. Sketch exceeded 10,000 steps without yielding. Check for runaway infinite loops (e.g. while(1) or for(;;) without delay).';
+          get().addSerialLog(`[WATCHDOG HALT] ${alertMsg}`);
+          set({
+            isRunning: false,
+            isPaused: true,
+            totalExecutedSteps: currentSteps,
+            watchdogTripped: true,
+            watchdogError: alertMsg
+          });
+          return;
+        }
+
         const pool = newPhase === 'setup' ? compiled.setupSteps : compiled.loopSteps;
 
         if (pool.length === 0) {
@@ -550,7 +601,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
           else if (inst.type === 'delay') {
             const delayExpr = inst.expr || String(inst.durationMs || 1000);
             const delayVal = Number(evaluateExpression(delayExpr, state.vars, newHw));
-            instBaseDuration = isNaN(delayVal) || delayVal <= 0 ? 1000 : delayVal;
+            instBaseDuration = isNaN(delayVal) || !isFinite(delayVal) || delayVal <= 0 ? 1000 : Math.min(delayVal, 30000);
             remainingDelay = instBaseDuration;
             newStepIdx++;
           }
@@ -619,7 +670,8 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         activeInstruction: activeInst,
         activeLineIndex: activeLine,
         stepRemainingDelayMs: remainingDelay,
-        scopeBuffer: updatedScope
+        scopeBuffer: updatedScope,
+        totalExecutedSteps: currentSteps
       });
     }
   };
@@ -652,8 +704,15 @@ function applyInstructionToHardware(
     pin = NaN;
   }
 
+  // Validate Arduino Uno Pin Range: 0..19 (D0..D13 and A0..A5 mapped to 14..19)
+  const isPinValid = !isNaN(pin) && pin >= 0 && pin <= 19;
+
   switch (inst.type) {
     case 'pinMode': {
+      if (!isPinValid) {
+        addSerial(`[Warning] Out-of-bounds pin ${pin} in pinMode(). Arduino Uno pins are 0-19.`);
+        break;
+      }
       if (hw.activeLab === 'led' && inst.param === 'OUTPUT' && typeof pin === 'number' && !isNaN(pin)) {
         hw.ledPin = pin;
       }
@@ -661,6 +720,10 @@ function applyInstructionToHardware(
     }
 
     case 'digitalWrite': {
+      if (!isPinValid) {
+        addSerial(`[Warning] Out-of-bounds pin ${pin} in digitalWrite(). Arduino Uno pins are 0-19.`);
+        break;
+      }
       const exprVal = inst.expr !== undefined ? evaluateExpression(inst.expr, vars, hw) : (inst.value ? 1 : 0);
       const isHigh = Boolean(Number(exprVal) > 0 || exprVal === true || exprVal === 'HIGH');
       if (!hw.pinStates) hw.pinStates = {};
@@ -717,6 +780,10 @@ function applyInstructionToHardware(
     }
 
     case 'analogWrite': {
+      if (!isPinValid) {
+        addSerial(`[Warning] Out-of-bounds pin ${pin} in analogWrite(). Arduino Uno pins are 0-19.`);
+        break;
+      }
       const exprVal = inst.expr !== undefined ? evaluateExpression(inst.expr, vars, hw) : Number(inst.value);
       const pwm = Math.max(0, Math.min(255, Math.round(Number(exprVal) || 0)));
       if (!hw.pwmStates) hw.pwmStates = {};

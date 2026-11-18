@@ -67,8 +67,25 @@ export function runDeterministicDiagnostics(snapshot: WorkbenchStateSnapshot): A
   const hw = snapshot.hardwareState;
   const vars = snapshot.runtimeVars || {};
 
+  // 0. Watchdog Runaway Loop Check
+  if (snapshot.watchdogTripped) {
+    issues.push({
+      id: 'watchdog-tripped',
+      type: 'simulationState',
+      severity: 'error',
+      title: '⚡ Watchdog Alert: Runaway Loop Halted',
+      message: snapshot.watchdogError || 'Your sketch exceeded 10,000 steps without yielding. Check for runaway infinite loops (e.g. while(1) or for(;;) without delay).',
+      fixSuggestion: 'Add delay(100); inside your loop or verify your loop termination condition.',
+      suggestedFix: {
+        label: 'Insert delay(100) yield',
+        newCode: code.replace(/void\s+loop\s*\(\s*\)\s*\{/, 'void loop() {\n  delay(100);'),
+        description: 'Insert a safe 100ms yield into loop() to prevent CPU freeze.'
+      }
+    });
+  }
+
   // 1. Simulation Runtime State Check
-  if (!snapshot.isRunning) {
+  if (!snapshot.isRunning && !snapshot.watchdogTripped) {
     issues.push({
       id: 'sim-not-running',
       type: 'simulationState',
@@ -204,6 +221,23 @@ export function runDeterministicDiagnostics(snapshot: WorkbenchStateSnapshot): A
             newCode: fixedLines.join('\n'),
             description: `Change non-PWM Pin ${pinNum} to Timer PWM Pin ${recommendedPwm}.`
           }
+        });
+      }
+    }
+
+    // Check for out-of-bounds pins (> 19 or < 0)
+    const pinCallMatch = clean.match(/(?:digitalWrite|analogWrite|pinMode)\s*\(\s*(\d+)/);
+    if (pinCallMatch) {
+      const pinNum = parseInt(pinCallMatch[1], 10);
+      if (pinNum > 19 || pinNum < 0) {
+        issues.push({
+          id: `out-of-bounds-pin-${idx}`,
+          type: 'pinMismatch',
+          severity: 'error',
+          title: `Out-of-Bounds Pin ${pinNum} [Line ${idx + 1}]`,
+          message: `Line ${idx + 1} accesses Pin ${pinNum}. On the ATmega328P (Arduino Uno), pins only range from 0 to 19 (Pins 0–13 digital and A0–A5 / 14–19 analog). Pin ${pinNum} does not physically exist on this microcontroller.`,
+          lineIndex: idx,
+          fixSuggestion: 'Use a valid Arduino Uno pin (0 to 13, or A0 to A5).'
         });
       }
     }

@@ -91,7 +91,9 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
       loopCount: s.loopCount,
       hardwareState: s.hardwareState,
       serialLogs: s.serialLogs,
-      runtimeVars: s.vars
+      runtimeVars: s.vars,
+      watchdogTripped: s.watchdogTripped,
+      watchdogError: s.watchdogError
     };
   };
 

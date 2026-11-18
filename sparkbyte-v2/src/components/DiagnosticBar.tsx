@@ -11,7 +11,9 @@ import {
   Activity, 
   Terminal, 
   ChevronUp, 
-  ChevronDown
+  ChevronDown,
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 import { useWorkbenchStore } from '../store/useWorkbenchStore';
 import { Oscilloscope } from './Oscilloscope';
@@ -23,7 +25,10 @@ export const DiagnosticBar: React.FC = () => {
     codeHudMode,
     diagnosticDockOpen,
     setDiagnosticDockOpen,
-    serialLogs
+    serialLogs,
+    watchdogTripped,
+    watchdogError,
+    resetSimulation
   } = useWorkbenchStore();
 
   const [activeTab, setActiveTab] = useState<'scope' | 'serial'>('scope');
@@ -69,6 +74,17 @@ export const DiagnosticBar: React.FC = () => {
           )}
         </button>
 
+        {watchdogTripped && (
+          <button
+            onClick={() => setDiagnosticDockOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold text-[11px] animate-pulse"
+            title={watchdogError || 'Watchdog Alert'}
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <span>Watchdog Alert</span>
+          </button>
+        )}
+
         <button
           onClick={() => setDiagnosticDockOpen(true)}
           className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -91,6 +107,24 @@ export const DiagnosticBar: React.FC = () => {
           : 'left-4'
       }`}
     >
+      {/* Watchdog Alert Banner */}
+      {watchdogTripped && (
+        <div className="bg-amber-950/80 border-b border-amber-500/50 px-3 py-1.5 flex items-center justify-between text-xs text-amber-200 shrink-0">
+          <div className="flex items-center gap-2 truncate">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+            <span className="font-semibold text-amber-300">Watchdog Alert:</span>
+            <span className="truncate text-amber-200/90 text-[11px]">{watchdogError}</span>
+          </div>
+          <button
+            onClick={() => resetSimulation()}
+            className="ml-2 px-2.5 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] transition-colors shrink-0 flex items-center gap-1 shadow"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset</span>
+          </button>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="h-8 px-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs shrink-0">
         <div className="flex items-center gap-1">
