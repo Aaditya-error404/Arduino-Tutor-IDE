@@ -147,10 +147,32 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
     const query = (textToSend || inputQuery).trim();
     if (!query || loading) return;
 
-    // Direct, live snapshot from store
-    const snapshot = getSnapshot();
-    if (prevLabIdRef.current !== snapshot.activeLabId) {
-      prevLabIdRef.current = snapshot.activeLabId;
+    // DIRECT, LIVE READ from useWorkbenchStore.getState() at the exact moment user sends!
+    const state = useWorkbenchStore.getState();
+    const lab = LAB_MAP[state.activeLabId] || Object.values(LAB_MAP)[0];
+    const lesson = lab?.lessons[state.activeLessonId - 1] || lab?.lessons[0];
+    const liveCpp = state.customCode !== null ? state.customCode : (lesson ? lesson.defaultCode.cpp : '');
+
+    const snapshot: WorkbenchStateSnapshot = {
+      activeLabId: state.activeLabId,
+      activeLabTitle: lab.title,
+      activeLabCategory: lab.category,
+      gradeBand: lab.grade,
+      activeLessonId: state.activeLessonId,
+      activeLessonTitle: lesson ? lesson.title : '',
+      activeLessonSummary: lesson ? (lesson.summary || lesson.subtitle || '') : '',
+      defaultCpp: lesson ? lesson.defaultCode.cpp : '',
+      currentCpp: liveCpp,
+      isRunning: state.isRunning,
+      isPaused: state.isPaused,
+      loopCount: state.loopCount,
+      hardwareState: state.hardwareState,
+      serialLogs: state.serialLogs,
+      runtimeVars: state.vars
+    };
+
+    if (prevLabIdRef.current !== state.activeLabId) {
+      prevLabIdRef.current = state.activeLabId;
     }
 
     const userMsg: AiCoachMessage = {
@@ -301,8 +323,8 @@ export const AiCoachPanel: React.FC<AiCoachPanelProps> = ({
           </div>
           <span className="font-bold text-slate-200 tracking-tight flex items-center gap-1.5">
             Sparky AI Coach
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold text-slate-400 bg-slate-800 border border-slate-700/60">
-              v2 Socratic
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold text-slate-400 bg-slate-800 border border-slate-700/60 max-w-[130px] truncate" title={currentLab.name}>
+              {currentLab.name.replace(/\s+Lab$/, '')}
             </span>
           </span>
 

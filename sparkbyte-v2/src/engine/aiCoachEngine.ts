@@ -696,47 +696,38 @@ export interface GeneratedSketch {
 
 export function isCodeGenerationIntent(query: string): boolean {
   const q = query.toLowerCase().trim();
+
+  // Exclude explicit line inspection requests (e.g. "explain line 12", "line 5")
+  if (/\bline\s*\d+\b/i.test(q)) return false;
+
+  // Exclude pure debugging inquiries (e.g. "why not working", "find bugs", "why is fan off")
   if (
-    q.includes('generate code') ||
-    q.includes('write code') ||
-    q.includes('write a sketch') ||
-    q.includes('write sketch') ||
-    q.includes('give me code') ||
-    q.includes('create code') ||
-    q.includes('make code') ||
-    q.includes('code for') ||
-    q.includes('sketch for') ||
-    q.includes('arduino code') ||
-    q.includes('arduino sketch') ||
-    q.includes('synthesize code') ||
-    q.includes('how to code')
+    q.includes('why') ||
+    q.includes('not working') ||
+    q.includes('not turning on') ||
+    q.includes('not spinning') ||
+    q.includes('not blinking') ||
+    q.includes('error') ||
+    q.includes('bug') ||
+    q.includes('wrong') ||
+    q.includes('broken') ||
+    q.includes('issue') ||
+    q.includes('fail')
   ) {
-    return true;
+    return false;
   }
-  if (
-    q.includes('blink faster') ||
-    q.includes('blink slower') ||
-    q.includes('blink an led') ||
-    q.includes('make an led blink') ||
-    q.includes('make led blink') ||
-    q.includes('control 2 led') ||
-    q.includes('control two led') ||
-    q.includes('dual led') ||
-    q.includes('sweep a servo') ||
-    q.includes('servo sweep') ||
-    q.includes('read ultrasonic') ||
-    q.includes('sonar code') ||
-    q.includes('read distance') ||
-    q.includes('read temperature') ||
-    q.includes('measure temperature') ||
-    q.includes('water the plant') ||
-    q.includes('water pump') ||
-    q.includes('spin the motor') ||
-    q.includes('drive the motor')
-  ) {
-    return true;
-  }
-  return false;
+
+  // Code generation, sketch writing, hardware actions, pacing, or modifications
+  const codeKeywords = [
+    'generate', 'write', 'create', 'make', 'code', 'sketch', 'program',
+    'blink', 'sweep', 'sensor', 'faster', 'slower', 'strobe', 'heartbeat',
+    'pin', 'dual', 'alternate', 'servo', 'sonar', 'ultrasonic', 'motor',
+    'relay', 'pump', 'buzzer', 'melody', 'tone', 'dim', 'fade',
+    'give me', 'need code', 'how to code', 'sample code', 'example code',
+    'arduino'
+  ];
+
+  return codeKeywords.some((kw) => q.includes(kw));
 }
 
 export function resolveTargetLabId(query: string, currentLabId: string): string {
@@ -1823,11 +1814,57 @@ function generateDeterministicSocraticResponse(
   // If there are errors in the code, prioritize pointing them out for generic queries
   if (diag.hasErrors) {
     const firstErr = diag.issues.find((i) => i.severity === 'error');
-    return `### 💡 Sparky Hint\n\nI noticed an issue that needs your attention first:\n\n**${firstErr?.title}**\n${firstErr?.message}\n\n${firstErr?.fixSuggestion ? `Take a look at your code and see if you can add \`${firstErr.fixSuggestion}\`!` : 'Check the indicated line to fix the syntax before continuing.'}`;
+    return `### 💡 Sparky Code Inspection Notice\n\nI noticed an issue in your **${snapshot.activeLabTitle}** sketch that needs attention first:\n\n* **Issue:** ${firstErr?.title}\n* **Details:** ${firstErr?.message}\n\n${firstErr?.fixSuggestion ? `Review line ${firstErr.lineIndex ? firstErr.lineIndex + 1 : ''}: \`${firstErr.fixSuggestion}\`!` : 'Check the indicated line in Monaco Editor.'}\n\nYou can also click **[ ✨ Apply Fix ]** to patch it instantly!`;
   }
 
-  // Fallback helpful coach message
-  return `### 🤖 Sparky AI Coach\n\nYou are working on **${snapshot.activeLabTitle}** (Grade Band: ${snapshot.gradeBand}).\n\n* **Current Objective:** ${snapshot.activeLessonTitle}\n* **Simulation Status:** Microcontroller is ${snapshot.isRunning ? 'running' : 'stopped'}, Loop Cycle #${snapshot.loopCount}.\n\nTry clicking one of the one-click diagnostic chips above (like **"Why isn't my circuit working?"** or **"Explain this code line-by-line"**), ask me about any specific line (e.g. **"explain line 12"**), or configure local WebGPU / Cloud LLM in Settings (⚙️)!`;
+  // Real-time live circuit & code telemetry summary
+  let telemetrySnippet = '';
+  switch (snapshot.activeLabId) {
+    case 'led':
+      telemetrySnippet = `* **LED Output:** Digital Pin 13 is currently **${snapshot.hardwareState.ledOn ? 'HIGH (+5V Lit)' : 'LOW (0V Dark)'}** with PWM duty cycle **${snapshot.hardwareState.pwmDuty}/255**.`;
+      break;
+    case 'servo':
+      telemetrySnippet = `* **Servo Actuator:** Current shaft angle is **${snapshot.hardwareState.servoAngle}°** (Target: ${snapshot.hardwareState.servoTargetAngle}°, PWM pulse: ${snapshot.hardwareState.servoPulseWidthMs.toFixed(2)}ms).`;
+      break;
+    case 'pot':
+      telemetrySnippet = `* **Potentiometer:** Analog Pin A0 is reading **${snapshot.hardwareState.potVal}/1023** (~${(snapshot.hardwareState.potVal / 1023 * 5).toFixed(2)}V).`;
+      break;
+    case 'temp':
+      telemetrySnippet = `* **Thermal Telemetry:** LM35/TMP36 sensor is measuring **${snapshot.hardwareState.temperatureC.toFixed(1)}°C**, Cooling Fan PWM: **${snapshot.hardwareState.pwmDuty}/255**.`;
+      break;
+    case 'sonar':
+      telemetrySnippet = `* **Ultrasonic Telemetry:** HC-SR04 obstacle distance is **${snapshot.hardwareState.distanceCm} cm**.`;
+      break;
+    case 'soil':
+      telemetrySnippet = `* **Soil Telemetry:** Moisture sensor reading is **${snapshot.hardwareState.soilMoisturePct}%**, Relay Pump: **${snapshot.hardwareState.ledOn ? 'ENERGIZED (ON)' : 'DE-ENERGIZED (OFF)'}**.`;
+      break;
+    case 'gas':
+      telemetrySnippet = `* **Air Quality Telemetry:** MQ-2 smoke concentration is **${snapshot.hardwareState.gasPpm} PPM**.`;
+      break;
+    case 'ldr':
+      telemetrySnippet = `* **Photometric Telemetry:** Ambient light reading is **${snapshot.hardwareState.ldrRaw} Lux**.`;
+      break;
+    default:
+      telemetrySnippet = `* **Microcontroller Telemetry:** Pin 13: ${snapshot.hardwareState.ledOn ? 'HIGH' : 'LOW'}, Servo: ${snapshot.hardwareState.servoAngle}°, Clock: ${snapshot.isRunning ? 'RUNNING (16 MHz Active)' : 'STOPPED'}.`;
+  }
+
+  const lines = snapshot.currentCpp.split('\n').filter((l) => l.trim().length > 0);
+
+  return `### ⚡ Sparky Engineering Coach: ${snapshot.activeLabTitle}
+
+I analyzed your query: *"${query}"* in the context of your active **${snapshot.activeLabTitle}** circuit (Grade Band: ${snapshot.gradeBand}).
+
+#### 1. Live Circuit Telemetry
+* **Simulation Status:** Microcontroller clock is **${snapshot.isRunning ? 'RUNNING (Loop #' + snapshot.loopCount + ')' : 'STOPPED (Click Start Simulation ▶)'}**.
+${telemetrySnippet}
+
+#### 2. Code Context
+Your sketch currently has **${lines.length} lines** compiled against the virtual ATmega328P. 
+* To synthesize new Arduino code, ask me to *"generate code"*, *"blink faster"*, or *"control dual LEDs"*.
+* To debug, ask me *"why is it not working"*, or ask about any line like *"explain line 8"*.
+* To learn in Hindi, type *"Hindi mein samjhao"*.
+
+What experiment or modification would you like to engineer next?`;
 }
 
 // ============================================================================
