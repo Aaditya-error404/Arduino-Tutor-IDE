@@ -16,7 +16,10 @@ import {
   Play,
   Square,
   RotateCcw,
-  ChevronDown
+  ChevronDown,
+  PanelLeft,
+  PanelBottom,
+  PanelRight
 } from 'lucide-react';
 import { LabSpec, LessonSpec } from '../data/mockCurriculum';
 
@@ -32,6 +35,12 @@ interface TopBarProps {
   onVerifyCode: () => void;
   onOpenCurriculumDrawer?: () => void;
   isVerifying?: boolean;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+  consoleOpen?: boolean;
+  onToggleConsole?: () => void;
+  cadViewportOpen?: boolean;
+  onToggleCadViewport?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -44,7 +53,13 @@ export const TopBar: React.FC<TopBarProps> = ({
   onResetSimulation,
   onVerifyCode,
   onOpenCurriculumDrawer,
-  isVerifying = false
+  isVerifying = false,
+  sidebarOpen = true,
+  onToggleSidebar,
+  consoleOpen = true,
+  onToggleConsole,
+  cadViewportOpen = true,
+  onToggleCadViewport
 }) => {
   // Format virtual time into mm:ss.ms (tabular format)
   const formatTime = (ms: number): string => {
@@ -160,6 +175,51 @@ export const TopBar: React.FC<TopBarProps> = ({
           <RotateCcw className="w-3.5 h-3.5" strokeWidth={1.5} />
           <span className="hidden sm:inline">RESET</span>
         </button>
+
+        {/* 3-WINDOW WORKSPACE LAYOUT TOGGLE GROUP */}
+        <div className="flex items-center gap-0.5 pl-2 ml-1 border-l border-[#27272A]">
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className={`p-1 rounded-sm border transition-colors ${
+                sidebarOpen
+                  ? 'bg-[#27272A] text-[#F59E0B] border-[#3F3F46]'
+                  : 'bg-[#121215] text-[#71717A] border-[#27272A] hover:text-[#F4F4F5]'
+              }`}
+              title={sidebarOpen ? 'Minimize Left Panel (Sidebar)' : 'Restore Left Panel (Sidebar)'}
+            >
+              <PanelLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </button>
+          )}
+
+          {onToggleConsole && (
+            <button
+              onClick={onToggleConsole}
+              className={`p-1 rounded-sm border transition-colors ${
+                consoleOpen
+                  ? 'bg-[#27272A] text-[#06B6D4] border-[#3F3F46]'
+                  : 'bg-[#121215] text-[#71717A] border-[#27272A] hover:text-[#F4F4F5]'
+              }`}
+              title={consoleOpen ? 'Minimize Bottom Console' : 'Restore Bottom Console'}
+            >
+              <PanelBottom className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </button>
+          )}
+
+          {onToggleCadViewport && (
+            <button
+              onClick={onToggleCadViewport}
+              className={`p-1 rounded-sm border transition-colors ${
+                cadViewportOpen
+                  ? 'bg-[#27272A] text-[#10B981] border-[#3F3F46]'
+                  : 'bg-[#121215] text-[#71717A] border-[#27272A] hover:text-[#F4F4F5]'
+              }`}
+              title={cadViewportOpen ? 'Minimize Right Panel (CAD Viewport)' : 'Restore Right Panel (CAD Viewport)'}
+            >
+              <PanelRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

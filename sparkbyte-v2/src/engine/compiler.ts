@@ -24,6 +24,32 @@ export function sanitizeCpp(code: string): string {
     .replace(/\r\n/g, '\n');
 }
 
+export function expandDefines(code: string): string {
+  if (!code) return '';
+  const defines: Record<string, string> = {};
+  const lines = code.split('\n');
+  const processedLines: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const defMatch = trimmed.match(/^#define\s+([a-zA-Z_]\w*)\s+(.+)$/);
+    if (defMatch) {
+      const name = defMatch[1];
+      const val = defMatch[2].replace(/\/\/.*$/, '').trim();
+      defines[name] = val;
+      processedLines.push(`// #define ${name} ${val}`);
+    } else {
+      processedLines.push(line);
+    }
+  }
+
+  let result = processedLines.join('\n');
+  for (const [name, val] of Object.entries(defines)) {
+    result = result.replace(new RegExp(`\\b${name}\\b`, 'g'), val);
+  }
+  return result;
+}
+
 export interface CompiledProgram {
   setupSteps: InstructionNode[];
   loopSteps: InstructionNode[];
@@ -394,7 +420,7 @@ export function transformSwitchCases(code: string): string {
 }
 
 export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgram {
-  const transformedCpp = transformSwitchCases(sanitizeCpp(rawCpp));
+  const transformedCpp = transformSwitchCases(expandDefines(sanitizeCpp(rawCpp)));
   const rawLines = transformedCpp.split('\n');
   const humanLines = (rawHuman || '').split('\n');
 

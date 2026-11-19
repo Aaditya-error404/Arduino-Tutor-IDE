@@ -19,6 +19,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { PanelRightOpen } from 'lucide-react';
 import { TopBar } from './components/TopBar';
 import { SidebarTree } from './components/SidebarTree';
 import { CodeWorkspace, FileTab, PinStateTelemetry } from './components/CodeWorkspace';
@@ -87,6 +88,8 @@ export const App: React.FC = () => {
   // WORKSPACE PANELS & FILE BUFFERS
   // ──────────────────────────────────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [consoleOpen, setConsoleOpen] = useState(true);
+  const [cadViewportOpen, setCadViewportOpen] = useState(true);
   const [activeFile, setActiveFile] = useState<FileTab>('sketch.ino');
   const [files, setFiles] = useState<Record<FileTab, string>>(() => ({
     ...currentLesson.defaultFiles
@@ -238,6 +241,12 @@ export const App: React.FC = () => {
         onVerifyCode={handleVerifyCode}
         onOpenCurriculumDrawer={() => setSidebarOpen(true)}
         isVerifying={isVerifying}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        consoleOpen={consoleOpen}
+        onToggleConsole={() => setConsoleOpen(!consoleOpen)}
+        cadViewportOpen={cadViewportOpen}
+        onToggleCadViewport={() => setCadViewportOpen(!cadViewportOpen)}
       />
 
       {/* ─────────────────────────────────────────────────────────────
@@ -254,51 +263,101 @@ export const App: React.FC = () => {
         />
 
         {/* HORIZONTAL SPLIT: CENTER CODE WORKSPACE & RIGHT CAD VIEWPORT */}
-        <div className="flex-1 h-full overflow-hidden">
-          <PanelGroup direction="horizontal">
-            {/* ZONE 3: CENTER CODE WORKSPACE */}
-            <Panel defaultSize={48} minSize={25} className="h-full">
-              <CodeWorkspace
-                files={files}
-                activeFile={activeFile}
-                onSelectFile={setActiveFile}
-                onCodeChange={(file, code) => {
-                  handleCodeChange(file, code);
-                  if (file === 'sketch.ino') setCustomCode(code);
-                }}
-                serialLogs={storeLogs.length > 0 ? storeLogs : [
-                  '[BOOT] AVR ATmega328P Core initialized at 16.000000 MHz.',
-                  '[USART] Hardware Serial Port 0 configured for 115200 baud (8-N-1).',
-                  '[READY] System standby. Press [RUN SIM] to begin hardware execution cycle.',
-                ]}
-                onSendSerial={handleSendSerial}
-                onClearSerial={() => {/* store manages slice */}}
-                baudRate={baudRate}
-                onBaudRateChange={setBaudRate}
-                pinTelemetry={pinTelemetry}
-                compilerOutput={compilerOutput}
-              />
-            </Panel>
+        <div className="flex-1 h-full overflow-hidden flex">
+          {cadViewportOpen ? (
+            <PanelGroup direction="horizontal">
+              {/* ZONE 3: CENTER CODE WORKSPACE */}
+              <Panel defaultSize={48} minSize={25} className="h-full">
+                <CodeWorkspace
+                  files={files}
+                  activeFile={activeFile}
+                  onSelectFile={setActiveFile}
+                  onCodeChange={(file, code) => {
+                    handleCodeChange(file, code);
+                    if (file === 'sketch.ino') setCustomCode(code);
+                  }}
+                  serialLogs={storeLogs.length > 0 ? storeLogs : [
+                    '[BOOT] AVR ATmega328P Core initialized at 16.000000 MHz.',
+                    '[USART] Hardware Serial Port 0 configured for 115200 baud (8-N-1).',
+                    '[READY] System standby. Press [RUN SIM] to begin hardware execution cycle.',
+                  ]}
+                  onSendSerial={handleSendSerial}
+                  onClearSerial={() => {/* store manages slice */}}
+                  baudRate={baudRate}
+                  onBaudRateChange={setBaudRate}
+                  pinTelemetry={pinTelemetry}
+                  compilerOutput={compilerOutput}
+                  isConsoleOpen={consoleOpen}
+                  onToggleConsole={() => setConsoleOpen(!consoleOpen)}
+                  isMaximized={false}
+                  onToggleMaximize={() => setCadViewportOpen(false)}
+                />
+              </Panel>
 
-            {/* HAIRLINE HORIZONTAL RESIZE HANDLE */}
-            <PanelResizeHandle className="w-[2px] bg-[#27272A] hover:bg-[#F59E0B] transition-colors cursor-col-resize relative group">
-              <div className="absolute inset-y-0 -left-1 -right-1" />
-            </PanelResizeHandle>
+              {/* HAIRLINE HORIZONTAL RESIZE HANDLE */}
+              <PanelResizeHandle className="w-[2px] bg-[#27272A] hover:bg-[#F59E0B] transition-colors cursor-col-resize relative group">
+                <div className="absolute inset-y-0 -left-1 -right-1" />
+              </PanelResizeHandle>
 
-            {/* ZONE 4: RIGHT CAD & AVR HARDWARE SIMULATION VIEWPORT */}
-            <Panel defaultSize={52} minSize={30} className="h-full">
-              <CadViewport
-                currentLab={currentLab}
-                servoAngle={servoAngle}
-                pwmDutyPct={pwmDutyPct}
-                pulseWidthUs={pulseWidthUs}
-                currentMa={currentMa}
-                busVoltage={5.02}
-                isRunning={storeRunning}
-                onManualAngleChange={() => {/* read-only: driven by store execution engine */}}
-              />
-            </Panel>
-          </PanelGroup>
+              {/* ZONE 4: RIGHT CAD & AVR HARDWARE SIMULATION VIEWPORT */}
+              <Panel defaultSize={52} minSize={30} className="h-full">
+                <CadViewport
+                  currentLab={currentLab}
+                  servoAngle={servoAngle}
+                  pwmDutyPct={pwmDutyPct}
+                  pulseWidthUs={pulseWidthUs}
+                  currentMa={currentMa}
+                  busVoltage={5.02}
+                  isRunning={storeRunning}
+                  onManualAngleChange={() => {/* read-only: driven by store execution engine */}}
+                  onToggleMinimize={() => setCadViewportOpen(false)}
+                />
+              </Panel>
+            </PanelGroup>
+          ) : (
+            /* MAXIMIZED CODE WORKSPACE MODE WITH SLIM RIGHT DOCK RAIL */
+            <div className="flex-1 h-full flex overflow-hidden">
+              <div className="flex-1 h-full overflow-hidden">
+                <CodeWorkspace
+                  files={files}
+                  activeFile={activeFile}
+                  onSelectFile={setActiveFile}
+                  onCodeChange={(file, code) => {
+                    handleCodeChange(file, code);
+                    if (file === 'sketch.ino') setCustomCode(code);
+                  }}
+                  serialLogs={storeLogs.length > 0 ? storeLogs : [
+                    '[BOOT] AVR ATmega328P Core initialized at 16.000000 MHz.',
+                    '[USART] Hardware Serial Port 0 configured for 115200 baud (8-N-1).',
+                    '[READY] System standby. Press [RUN SIM] to begin hardware execution cycle.',
+                  ]}
+                  onSendSerial={handleSendSerial}
+                  onClearSerial={() => {/* store manages slice */}}
+                  baudRate={baudRate}
+                  onBaudRateChange={setBaudRate}
+                  pinTelemetry={pinTelemetry}
+                  compilerOutput={compilerOutput}
+                  isConsoleOpen={consoleOpen}
+                  onToggleConsole={() => setConsoleOpen(!consoleOpen)}
+                  isMaximized={true}
+                  onToggleMaximize={() => setCadViewportOpen(true)}
+                />
+              </div>
+
+              {/* SLIM RESTORE CAD DOCK RAIL */}
+              <button
+                onClick={() => setCadViewportOpen(true)}
+                className="w-[32px] h-full bg-[#121215] border-l border-[#27272A] hover:bg-[#18181B] flex flex-col items-center py-4 justify-between transition-colors group cursor-pointer shrink-0"
+                title="Restore Right CAD & Simulation Viewport"
+              >
+                <PanelRightOpen className="w-3.5 h-3.5 text-[#06B6D4]" strokeWidth={1.5} />
+                <span className="transform rotate-90 origin-center text-[10px] font-mono tracking-widest text-[#71717A] group-hover:text-[#F4F4F5] uppercase whitespace-nowrap">
+                  CAD VIEWPORT
+                </span>
+                <div className="w-1.5 h-1.5 rounded-full bg-[#06B6D4]" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

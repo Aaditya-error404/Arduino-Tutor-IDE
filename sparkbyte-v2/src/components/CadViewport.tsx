@@ -14,7 +14,8 @@ import {
   Move,
   Ruler,
   Box,
-  Gauge
+  Gauge,
+  PanelRightClose
 } from 'lucide-react';
 import { LabSpec, LAB_INDEX_TO_STORE_ID } from '../data/mockCurriculum';
 import { LabStageRenderer } from './labs';
@@ -29,6 +30,7 @@ interface CadViewportProps {
   busVoltage: number; // e.g. 5.02V
   isRunning: boolean;
   onManualAngleChange?: (angle: number) => void;
+  onToggleMinimize?: () => void;
 }
 
 export type CadTool = 'orbit' | 'pan' | 'measure' | 'wireframe';
@@ -42,7 +44,8 @@ export const CadViewport: React.FC<CadViewportProps> = ({
   currentMa,
   busVoltage,
   isRunning,
-  onManualAngleChange
+  onManualAngleChange,
+  onToggleMinimize
 }) => {
   const [activeTool, setActiveTool] = useState<CadTool>('orbit');
   const [cameraView, setCameraView] = useState<CameraView>('ISO');
@@ -156,6 +159,20 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             </button>
           ))}
         </div>
+
+        {onToggleMinimize && (
+          <>
+            <div className="h-3 w-[1px] bg-[#27272A] mx-0.5" />
+            <button
+              onClick={onToggleMinimize}
+              className="px-1.5 py-0.5 rounded-sm text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#18181B] font-mono text-[10px] flex items-center gap-1 transition-colors"
+              title="Minimize CAD Viewport"
+            >
+              <PanelRightClose className="w-3 h-3" strokeWidth={1.5} />
+              <span>MINIMIZE</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* ─────────────────────────────────────────────────────────────

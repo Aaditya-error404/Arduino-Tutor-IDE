@@ -35,6 +35,31 @@ import {
 } from '../data/mockCurriculum';
 import { useWorkbenchStore } from '../store/useWorkbenchStore';
 
+const CLEAN_LAB_TITLES: Record<string, string> = {
+  'lab-01': 'Digital GPIO & Resistor',
+  'lab-02': 'SG90 Micro Servo PWM',
+  'lab-03': 'Tactile Interrupt & Debounce',
+  'lab-04': '10-Bit ADC Voltage',
+  'lab-05': 'Piezo Buzzer & Tone',
+  'lab-06': '3D CSG Motor Mount',
+  'lab-07': 'True-RMS Multimeter',
+  'lab-08': 'Photoresistor Lux Divider',
+  'lab-09': 'RGB LED Color Mixing',
+  'lab-10': 'NTC Thermistor & Fan',
+  'lab-11': 'Ultrasonic Sonar Distance',
+  'lab-12': 'Infrared Optical Barrier',
+  'lab-13': '3D Printer G-Code Slicer',
+  'lab-14': 'DHT22 Hygrometer & Temp',
+  'lab-15': 'MQ-2 Gas & Smoke Alarm',
+  'lab-16': 'I2C 1602 LCD Display',
+  'lab-17': 'SSD1306 128x64 OLED Matrix',
+  'lab-18': 'Capacitive Soil & Relay',
+  'lab-19': 'L298N Dual Motor Driver',
+  'lab-20': 'MPU-6050 6-DOF IMU Fusion',
+  'lab-21': 'MFRC522 RFID SPI Protocol',
+  'lab-22': 'ESP8266 WiFi & MQTT Cloud'
+};
+
 export type SidebarTab = 'curriculum' | 'guide' | 'bom' | 'pinout';
 
 interface SidebarTreeProps {
@@ -239,9 +264,18 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
                 </>
               )}
             </span>
-            <span className="font-mono text-[10px] text-[#71717A]">
-              {TOTAL_LESSONS} LESSONS
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] text-[#71717A]">
+                {TOTAL_LESSONS} LESSONS
+              </span>
+              <button
+                onClick={onToggleOpen}
+                className="p-1 rounded-sm text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#27272A] transition-colors"
+                title="Minimize Drawer to Left Rail"
+              >
+                <PanelLeftClose className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
 
           {/* TAB 1: CURRICULUM TECHNICAL TREE */}
@@ -322,11 +356,11 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
                           ) : (
                             <ChevronRight className="w-3.5 h-3.5 text-[#71717A] shrink-0" strokeWidth={1.5} />
                           )}
-                          <span className="font-mono text-[10.5px] font-bold text-[#F59E0B] shrink-0">
-                            {lab.code}
+                          <span className="font-mono text-[9.5px] font-bold text-[#F59E0B] px-1 bg-[#18181B] border border-[#27272A] rounded-sm shrink-0">
+                            {String(lab.number).padStart(2, '0')}
                           </span>
-                          <span className="font-mono text-[11px] text-[#E4E4E7] truncate group-hover:text-white">
-                            {lab.title}
+                          <span className="font-mono text-[11px] text-[#E4E4E7] truncate group-hover:text-white" title={lab.title}>
+                            {CLEAN_LAB_TITLES[lab.id] || lab.title}
                           </span>
                         </div>
 
