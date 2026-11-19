@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import { HardwareState, InstructionNode, ScopeBufferPoint } from '../types/curriculum';
 import { LAB_MAP } from '../data/lessons';
+import { LAB_INDEX_TO_STORE_ID } from '../data/mockCurriculum';
 import { compileProgram, CompiledProgram, evaluateExpression, VariableValue } from '../engine/compiler';
 import { globalVirtualClock } from '../engine/virtualClock';
 import { getAVRRunner } from '../engine/avrRunner';
@@ -211,8 +212,24 @@ function extractInitialVars(compiled: CompiledProgram, hw: HardwareState): Recor
 }
 
 export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
-  const initialLab = LAB_MAP['servo'] || Object.values(LAB_MAP)[0];
-  const initialLesson = initialLab.lessons[0];
+  let initialLabKey = 'led';
+  let initialLessonIndex = 1;
+  try {
+    const savedActiveLab = typeof window !== 'undefined' ? localStorage.getItem('sparkbyte_active_lab') : null;
+    const savedLabId = typeof window !== 'undefined' ? localStorage.getItem('sparkbyte_current_lab_id') : null;
+    if (savedActiveLab && LAB_MAP[savedActiveLab]) {
+      initialLabKey = savedActiveLab;
+    } else if (savedLabId && LAB_INDEX_TO_STORE_ID[savedLabId] && LAB_MAP[LAB_INDEX_TO_STORE_ID[savedLabId]]) {
+      initialLabKey = LAB_INDEX_TO_STORE_ID[savedLabId];
+    }
+    const savedLesIdx = typeof window !== 'undefined' ? parseInt(localStorage.getItem('sparkbyte_active_lesson') || localStorage.getItem('sparkbyte_current_lesson_idx') || '1', 10) : 1;
+    if (!isNaN(savedLesIdx)) {
+      initialLessonIndex = savedLesIdx;
+    }
+  } catch {}
+
+  const initialLab = LAB_MAP[initialLabKey] || LAB_MAP['led'] || Object.values(LAB_MAP)[0];
+  const initialLesson = initialLab.lessons.find((l) => l.id === initialLessonIndex) || initialLab.lessons[0];
   const initialCompiled = compileProgram(initialLesson.defaultCode.cpp, initialLesson.defaultCode.human);
   const initialHw: HardwareState = {
     ...INITIAL_HARDWARE_STATE,
@@ -243,7 +260,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
 
   return {
     activeLabId: initialLab.id,
-    activeLessonId: 1,
+    activeLessonId: initialLessonIndex,
     activeDeskView: 'lab',
     activeDockTab: 'scope',
     teacherMode: false,
@@ -289,6 +306,11 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
       const lab = LAB_MAP[labId];
       if (!lab) return;
 
+      try {
+        localStorage.setItem('sparkbyte_active_lab', labId);
+        localStorage.setItem('sparkbyte_active_lesson', '1');
+      } catch {}
+
       buzzerAudio.stopTone();
       const lesson = lab.lessons[0];
       const compiled = compileProgram(lesson.defaultCode.cpp, lesson.defaultCode.human);
@@ -330,6 +352,10 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
     setActiveLesson: (lessonId: number) => {
       const lab = LAB_MAP[get().activeLabId];
       if (!lab) return;
+
+      try {
+        localStorage.setItem('sparkbyte_active_lesson', String(lessonId));
+      } catch {}
 
       buzzerAudio.stopTone();
       const clampedId = Math.max(1, Math.min(lab.lessons.length, lessonId));

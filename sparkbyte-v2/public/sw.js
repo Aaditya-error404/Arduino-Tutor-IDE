@@ -42,6 +42,17 @@ self.addEventListener('fetch', (event) => {
   // Bypass chrome extensions or non-http
   if (!url.protocol.startsWith('http')) return;
 
+  // Never intercept or cache localhost development requests
+  if (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.port === '5173' ||
+    url.hostname.startsWith('192.168.') ||
+    url.hostname.startsWith('10.')
+  ) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

@@ -77,12 +77,24 @@ export const App: React.FC = () => {
   // CURRICULUM — active lab / lesson (drive via mockCurriculum for sidebar)
   // ──────────────────────────────────────────────────────────────────────────
   const [currentLab, setCurrentLab] = useState<LabSpec>(() => {
-    return CURRICULUM_DATA.find((l) => l.id === 'lab-02') || CURRICULUM_DATA[0];
+    try {
+      const savedLabId = typeof window !== 'undefined' ? localStorage.getItem('sparkbyte_current_lab_id') : null;
+      if (savedLabId) {
+        const found = CURRICULUM_DATA.find((l) => l.id === savedLabId);
+        if (found) return found;
+      }
+    } catch {}
+    return CURRICULUM_DATA.find((l) => l.id === 'lab-01') || CURRICULUM_DATA[0];
   });
 
   const [currentLesson, setCurrentLesson] = useState<LessonSpec>(() => {
-    const lab = CURRICULUM_DATA.find((l) => l.id === 'lab-02') || CURRICULUM_DATA[0];
-    return lab.lessons[0];
+    try {
+      const savedLabId = typeof window !== 'undefined' ? localStorage.getItem('sparkbyte_current_lab_id') : null;
+      const savedLesIdx = typeof window !== 'undefined' ? parseInt(localStorage.getItem('sparkbyte_current_lesson_idx') || '1', 10) : 1;
+      const lab = (savedLabId ? CURRICULUM_DATA.find((l) => l.id === savedLabId) : null) || CURRICULUM_DATA[0];
+      return lab.lessons.find((les) => les.lessonIndex === savedLesIdx) || lab.lessons[0];
+    } catch {}
+    return CURRICULUM_DATA[0].lessons[0];
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -184,13 +196,20 @@ export const App: React.FC = () => {
   // LESSON SELECTION — drive both sidebar state & execution store
   // ──────────────────────────────────────────────────────────────────────────
   const handleSelectLesson = (lab: LabSpec, lesson: LessonSpec) => {
+    try {
+      localStorage.setItem('sparkbyte_current_lab_id', lab.id);
+      localStorage.setItem('sparkbyte_current_lesson_idx', String(lesson.lessonIndex));
+      const storeLabKey = LAB_INDEX_TO_STORE_ID[lab.id] || 'led';
+      localStorage.setItem('sparkbyte_active_lab', storeLabKey);
+      localStorage.setItem('sparkbyte_active_lesson', String(lesson.lessonIndex));
+    } catch {}
     setCurrentLab(lab);
     setCurrentLesson(lesson);
     setFiles({ ...lesson.defaultFiles });
     setActiveFile('sketch.ino');
     addSerialLog(`[SYSTEM] Switched to ${lab.code} // Lesson ${lesson.lessonIndex}: ${lesson.title}`);
     // Map lab id (e.g. "lab-02") → store key (e.g. "servo")
-    const storeLabKey = LAB_INDEX_TO_STORE_ID[lab.id] || 'servo';
+    const storeLabKey = LAB_INDEX_TO_STORE_ID[lab.id] || 'led';
     storeSetActiveLab(storeLabKey);
     storeSetActiveLesson(lesson.lessonIndex);
     setCustomCode(lesson.defaultFiles['sketch.ino'] || '');
