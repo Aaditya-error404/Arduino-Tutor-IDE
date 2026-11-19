@@ -7,94 +7,102 @@ interface OscilloscopeProps {
 }
 
 export const Oscilloscope: React.FC<OscilloscopeProps> = ({ dockMode = false }) => {
-  const { scopeBuffer, hardwareState } = useWorkbenchStore();
+  // Only subscribe to throttled hardwareState for telemetry strings, NOT high-frequency scopeBuffer
+  const hardwareState = useWorkbenchStore((s) => s.hardwareState);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const { activeLab, servoPulseWidthMs } = hardwareState;
 
-  // Render waveform on canvas whenever scopeBuffer updates
+  // Render waveform directly via 60fps requestAnimationFrame loop reading transient store state
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    let animId: number;
+    const render = () => {
+      animId = requestAnimationFrame(render);
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+      const width = canvas.width;
+      const height = canvas.height;
 
-    // Dark Scope Screen Background
-    ctx.fillStyle = '#060a12';
-    ctx.fillRect(0, 0, width, height);
+      // Dark Scope Screen Background
+      ctx.fillStyle = '#060a12';
+      ctx.fillRect(0, 0, width, height);
 
-    // Oscilloscope Grid Lines (8 horizontal divs, 10 vertical divs)
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 4]);
+      // Oscilloscope Grid Lines (8 horizontal divs, 10 vertical divs)
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 4]);
 
-    for (let x = 0; x < width; x += width / 10) {
+      for (let x = 0; x < width; x += width / 10) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += height / 6) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]); // Reset dash
+
+      // Ground Center Baseline
+      ctx.strokeStyle = '#334155';
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
+      ctx.moveTo(0, height - 12);
+      ctx.lineTo(width, height - 12);
       ctx.stroke();
-    }
-    for (let y = 0; y < height; y += height / 6) {
+
+      // Read transient scopeBuffer points directly from store state (no React re-renders)
+      const points = useWorkbenchStore.getState().scopeBuffer;
+      if (points.length < 2) return;
+
+      const stepX = width / Math.max(1, points.length - 1);
+      const scaleY = (height - 24) / 5.0; // 5V full scale
+
+      // ----------------------------------------------------
+      // Channel 1: Yellow Digital PWM / GPIO trace
+      // ----------------------------------------------------
+      ctx.strokeStyle = '#eab308'; // Amber/Yellow
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#eab308';
+      ctx.shadowBlur = 6;
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
+
+      points.forEach((pt, i) => {
+        const x = i * stepX;
+        const y = (height - 12) - (pt.ch1 * scaleY);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
       ctx.stroke();
-    }
-    ctx.setLineDash([]); // Reset dash
+      ctx.shadowBlur = 0; // Reset shadow
 
-    // Ground Center Baseline
-    ctx.strokeStyle = '#334155';
-    ctx.beginPath();
-    ctx.moveTo(0, height - 12);
-    ctx.lineTo(width, height - 12);
-    ctx.stroke();
+      // ----------------------------------------------------
+      // Channel 2: Cyan Analog Sensor / Feedback Voltage trace
+      // ----------------------------------------------------
+      ctx.strokeStyle = '#38bdf8'; // Sky Cyan
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
 
-    if (scopeBuffer.length < 2) return;
+      points.forEach((pt, i) => {
+        const x = i * stepX;
+        const y = (height - 12) - (pt.ch2 * scaleY);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    };
 
-    const points = scopeBuffer;
-    const stepX = width / Math.max(1, points.length - 1);
-    const scaleY = (height - 24) / 5.0; // 5V full scale
-
-    // ----------------------------------------------------
-    // Channel 1: Yellow Digital PWM / GPIO trace
-    // ----------------------------------------------------
-    ctx.strokeStyle = '#eab308'; // Amber/Yellow
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#eab308';
-    ctx.shadowBlur = 6;
-    ctx.beginPath();
-
-    points.forEach((pt, i) => {
-      const x = i * stepX;
-      const y = (height - 12) - (pt.ch1 * scaleY);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.shadowBlur = 0; // Reset shadow
-
-    // ----------------------------------------------------
-    // Channel 2: Cyan Analog Sensor / Feedback Voltage trace
-    // ----------------------------------------------------
-    ctx.strokeStyle = '#38bdf8'; // Sky Cyan
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = '#38bdf8';
-    ctx.shadowBlur = 4;
-    ctx.beginPath();
-
-    points.forEach((pt, i) => {
-      const x = i * stepX;
-      const y = (height - 12) - (pt.ch2 * scaleY);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-  }, [scopeBuffer]);
+    animId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
   // Compute live engineering telemetry values
   let freqStr = '50.0 Hz';

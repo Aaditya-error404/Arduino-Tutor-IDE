@@ -46,6 +46,49 @@ export type CadTool = 'orbit' | 'pan' | 'measure' | 'wireframe';
 export type CameraView = 'ISO' | 'TOP' | 'FRONT' | 'SIDE';
 export type ViewportMode = 'cad' | 'circuit';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WEBGL DISPOSAL SWEEP HELPERS (0 Memory Leaks)
+// ─────────────────────────────────────────────────────────────────────────────
+function disposeObject3D(root: THREE.Object3D | null | undefined): void {
+  if (!root) return;
+  root.traverse((obj) => {
+    if ((obj as THREE.Mesh).isMesh) {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      if (mesh.material) {
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((mat) => disposeMaterial(mat));
+        } else {
+          disposeMaterial(mesh.material);
+        }
+      }
+    } else if ((obj as THREE.Line).isLine) {
+      const line = obj as THREE.Line;
+      if (line.geometry) line.geometry.dispose();
+      if (line.material) {
+        if (Array.isArray(line.material)) line.material.forEach((m) => m.dispose());
+        else line.material.dispose();
+      }
+    }
+  });
+}
+
+function disposeMaterial(mat: THREE.Material): void {
+  mat.dispose();
+  const m = mat as unknown as Record<string, unknown>;
+  for (const key of Object.keys(m)) {
+    const val = m[key];
+    if (val && typeof val === 'object' && (val as THREE.Texture).isTexture) {
+      const tex = val as THREE.Texture;
+      if (tex.name !== 'persistent_lcd' && tex.name !== 'persistent_oled') {
+        tex.dispose();
+      }
+    }
+  }
+}
+
 export const CadViewport: React.FC<CadViewportProps> = ({
   currentLab,
   servoAngle,
@@ -87,8 +130,68 @@ export const CadViewport: React.FC<CadViewportProps> = ({
   const activeAssemblyGroupRef = useRef<THREE.Group | null>(null);
   const meshesRef = useRef<THREE.Mesh[]>([]);
   const dynamicRefsRef = useRef<DynamicAssemblyRefs>({});
-  const hardwareStateRef = useRef(hardwareState);
-  hardwareStateRef.current = hardwareState;
+
+  // Persistent Display Offscreen Canvases & CanvasTextures (allocated on mount, 0 memory leaks)
+  const persistentLcdRef = useRef<{ canvas: HTMLCanvasElement; texture: THREE.CanvasTexture } | null>(null);
+  const persistentOledRef = useRef<{ canvas: HTMLCanvasElement; texture: THREE.CanvasTexture } | null>(null);
+  const lastLcdTextRef = useRef<{ r0: string; r1: string }>({ r0: '', r1: '' });
+
+  // Responsive HUD container width
+  const [containerWidth, setContainerWidth] = useState<number>(600);
+
+  // Allocate persistent display textures once on mount
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (!persistentLcdRef.current) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#65a30d';
+          ctx.fillRect(0, 0, 512, 128);
+          ctx.font = 'bold 36px monospace';
+          ctx.fillStyle = '#14532d';
+          ctx.fillText('SPARKBYTE IDE v2', 20, 50);
+          ctx.fillText('16x2 LCD ACTIVE', 20, 100);
+        }
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.name = 'persistent_lcd';
+        texture.minFilter = THREE.LinearFilter;
+        persistentLcdRef.current = { canvas, texture };
+      }
+
+      if (!persistentOledRef.current) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, 256, 128);
+          ctx.fillStyle = '#06b6d4';
+          ctx.font = 'bold 22px monospace';
+          ctx.fillText('SSD1306 OLED', 16, 40);
+          ctx.fillText('128x64 GRAPHIC', 16, 75);
+        }
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.name = 'persistent_oled';
+        texture.minFilter = THREE.LinearFilter;
+        persistentOledRef.current = { canvas, texture };
+      }
+    }
+
+    return () => {
+      if (persistentLcdRef.current) {
+        persistentLcdRef.current.texture.dispose();
+        persistentLcdRef.current = null;
+      }
+      if (persistentOledRef.current) {
+        persistentOledRef.current.texture.dispose();
+        persistentOledRef.current = null;
+      }
+    };
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. INITIALIZE THREE.JS WEBGL VIEWPORT & BASE BUILD PLATE
@@ -189,7 +292,48 @@ export const CadViewport: React.FC<CadViewportProps> = ({
       if (controlsRef.current) controlsRef.current.update();
 
       const refs = dynamicRefsRef.current;
-      const hw = hardwareStateRef.current;
+      // Transient direct read from store state (60fps animation decoupled from React renders)
+      const hw = useWorkbenchStore.getState().hardwareState;
+
+      // Update 16x2 LCD display texture in place on change (no new texture allocations)
+      if (refs.lcdCanvas && refs.lcdTexture) {
+        const r0 = hw.lcdTextRow0 || '';
+        const r1 = hw.lcdTextRow1 || '';
+        if (r0 !== lastLcdTextRef.current.r0 || r1 !== lastLcdTextRef.current.r1) {
+          lastLcdTextRef.current = { r0, r1 };
+          const ctx = refs.lcdCanvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#65a30d'; // Yellow-green backlight
+            ctx.fillRect(0, 0, 512, 128);
+            ctx.font = 'bold 36px monospace';
+            ctx.fillStyle = '#14532d';
+            ctx.fillText(r0, 20, 50);
+            ctx.fillText(r1, 20, 100);
+            refs.lcdTexture.needsUpdate = true;
+          }
+        }
+      }
+
+      // Update 0.96" SSD1306 OLED display texture in place on change (no new texture allocations)
+      if (refs.oledCanvas && refs.oledTexture && hw.oledBuffer) {
+        const ctx = refs.oledCanvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, 256, 128);
+          ctx.fillStyle = '#06b6d4';
+          const buf = hw.oledBuffer;
+          for (let r = 0; r < 64; r++) {
+            const row = buf[r];
+            if (!row) continue;
+            for (let c = 0; c < 128; c++) {
+              if (row[c]) {
+                ctx.fillRect(c * 2, r * 2, 2, 2);
+              }
+            }
+          }
+          refs.oledTexture.needsUpdate = true;
+        }
+      }
 
       // Real-time kinematic actuation per lab
       if (refs.hornGroup) {
@@ -314,6 +458,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
       for (const entry of entries) {
         const { width: w, height: h } = entry.contentRect;
         if (w > 0 && h > 0) {
+          setContainerWidth(w);
           if (cameraRef.current) {
             cameraRef.current.aspect = w / h;
             cameraRef.current.updateProjectionMatrix();
@@ -326,11 +471,21 @@ export const CadViewport: React.FC<CadViewportProps> = ({
     });
     observer.observe(container);
 
-    // Cleanup
+    // Cleanup & WebGL Disposal Sweep (0 Leaks)
     return () => {
       cancelAnimationFrame(animId);
       observer.disconnect();
       controls.dispose();
+      if (activeAssemblyGroupRef.current) {
+        disposeObject3D(activeAssemblyGroupRef.current);
+        activeAssemblyGroupRef.current = null;
+      }
+      if (calipersGroupRef.current) {
+        disposeObject3D(calipersGroupRef.current);
+        calipersGroupRef.current = null;
+      }
+      disposeObject3D(bedGroup);
+      renderer.forceContextLoss();
       renderer.dispose();
       scene.clear();
     };
@@ -343,13 +498,19 @@ export const CadViewport: React.FC<CadViewportProps> = ({
     const scene = sceneRef.current;
     if (viewportMode !== 'cad' || !scene) return;
 
-    // Remove old assembly from scene
+    // Remove and dispose old assembly from scene (0 WebGL Memory Leaks)
     if (activeAssemblyGroupRef.current) {
+      disposeObject3D(activeAssemblyGroupRef.current);
       scene.remove(activeAssemblyGroupRef.current);
+      activeAssemblyGroupRef.current = null;
     }
 
-    // Build authentic 3D assembly for this lab
-    const result = buildLab3DAssembly(storeLabId, customCode);
+    // Build authentic 3D assembly for this lab, reusing persistent LCD/OLED textures
+    const persistentDisplays = {
+      lcd: persistentLcdRef.current || undefined,
+      oled: persistentOledRef.current || undefined
+    };
+    const result = buildLab3DAssembly(storeLabId, customCode, persistentDisplays);
     activeAssemblyGroupRef.current = result.group;
     meshesRef.current = result.meshes;
     dynamicRefsRef.current = result.dynamicRefs;
@@ -357,6 +518,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
 
     // Update Calipers box
     if (calipersGroupRef.current) {
+      disposeObject3D(calipersGroupRef.current);
       calipersGroupRef.current.clear();
       const { width: cw, depth: cd, height: ch } = result.caliperDimensions;
       const caliperBoxGeo = new THREE.BoxGeometry(cw, cd, ch);
@@ -522,7 +684,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             <div className="grid grid-cols-2 gap-1 text-[9px] font-bold">
               <button
                 onClick={() => setCameraPreset('TOP')}
-                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                className={`${containerWidth < 460 ? 'w-7 h-5 text-[8px]' : 'w-9 h-6 text-[9px]'} rounded-sm border transition-colors flex items-center justify-center ${
                   cameraView === 'TOP'
                     ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
                     : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
@@ -533,7 +695,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
               </button>
               <button
                 onClick={() => setCameraPreset('ISO')}
-                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                className={`${containerWidth < 460 ? 'w-7 h-5 text-[8px]' : 'w-9 h-6 text-[9px]'} rounded-sm border transition-colors flex items-center justify-center ${
                   cameraView === 'ISO'
                     ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
                     : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
@@ -544,7 +706,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
               </button>
               <button
                 onClick={() => setCameraPreset('FRONT')}
-                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                className={`${containerWidth < 460 ? 'w-7 h-5 text-[8px]' : 'w-9 h-6 text-[9px]'} rounded-sm border transition-colors flex items-center justify-center ${
                   cameraView === 'FRONT'
                     ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
                     : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
@@ -555,7 +717,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
               </button>
               <button
                 onClick={() => setCameraPreset('SIDE')}
-                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                className={`${containerWidth < 460 ? 'w-7 h-5 text-[8px]' : 'w-9 h-6 text-[9px]'} rounded-sm border transition-colors flex items-center justify-center ${
                   cameraView === 'SIDE'
                     ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
                     : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
@@ -577,15 +739,17 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             </button>
           </div>
 
-          {/* Coordinate Position Readout */}
-          <div className="bg-[#121215]/90 border border-[#27272A] rounded-sm px-2 py-1 text-[9px] text-[#71717A] flex flex-col items-end gap-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[#EF4444]">X: +120.0</span>
-              <span className="text-[#10B981]">Y: +045.5</span>
-              <span className="text-[#06B6D4]">Z: +000.0</span>
+          {/* Coordinate Position Readout - Collapsible on narrow widths */}
+          {containerWidth >= 500 && (
+            <div className="bg-[#121215]/90 border border-[#27272A] rounded-sm px-2 py-1 text-[9px] text-[#71717A] flex flex-col items-end gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[#EF4444]">X: +120.0</span>
+                <span className="text-[#10B981]">Y: +045.5</span>
+                <span className="text-[#06B6D4]">Z: +000.0</span>
+              </div>
+              <span className="text-[8px] text-[#52525B]">PERSPECTIVE • FOV 45°</span>
             </div>
-            <span className="text-[8px] text-[#52525B]">PERSPECTIVE • FOV 45°</span>
-          </div>
+          )}
         </div>
       ) : (
         <div className="absolute top-4 right-4 pointer-events-none flex flex-col items-end gap-1 font-mono text-[9px] text-[#71717A] z-10">
@@ -600,7 +764,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
       {/* ─────────────────────────────────────────────────────────────
           2. FLOATING CAD HUD TOOLBAR (TOP-LEFT)
       ───────────────────────────────────────────────────────────── */}
-      <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-[#121215]/95 border border-[#27272A] rounded-sm p-1 shadow-none backdrop-blur-none">
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-[#121215]/95 border border-[#27272A] rounded-sm p-1 shadow-none backdrop-blur-none max-w-[calc(100%-110px)]">
         {/* VIEWPORT MODE SELECTOR: 3D CAD vs CIRCUIT */}
         <div className="flex items-center gap-0.5 bg-[#18181B] p-0.5 rounded-sm border border-[#27272A] font-mono text-[10px]">
           <button
@@ -613,7 +777,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             title="3D WebGL Mechanical CAD Assembly Viewport"
           >
             <Box className="w-3 h-3" strokeWidth={1.5} />
-            <span>3D CAD</span>
+            <span className={containerWidth < 460 ? 'hidden' : 'inline'}>3D CAD</span>
           </button>
           <button
             onClick={() => setViewportMode('circuit')}
@@ -625,7 +789,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             title="2D Interactive Electronic Circuit Stage"
           >
             <Cpu className="w-3 h-3" strokeWidth={1.5} />
-            <span>CIRCUIT</span>
+            <span className={containerWidth < 460 ? 'hidden' : 'inline'}>CIRCUIT</span>
           </button>
         </div>
 
@@ -683,29 +847,31 @@ export const CadViewport: React.FC<CadViewportProps> = ({
 
             <div className="h-3 w-[1px] bg-[#27272A] mx-0.5" />
 
-            {/* CAMERA PRESETS */}
-            <div className="flex items-center gap-0.5 font-mono text-[9px] text-[#A1A1AA]">
-              {(['ISO', 'TOP', 'FRONT'] as CameraView[]).map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setCameraPreset(view)}
-                  className={`px-1.5 py-1 rounded-sm uppercase transition-colors ${
-                    cameraView === view
-                      ? 'bg-[#27272A] text-[#F4F4F5] font-bold'
-                      : 'hover:text-[#F4F4F5] hover:bg-[#18181B]'
-                  }`}
-                >
-                  {view}
-                </button>
-              ))}
-              <button
-                onClick={handleResetCamera}
-                className="p-1 text-[#A1A1AA] hover:text-[#F59E0B] hover:bg-[#18181B] rounded-sm transition-colors ml-0.5"
-                title="Reset Camera to ISO Default"
-              >
-                <RotateCcw className="w-3 h-3" strokeWidth={1.5} />
-              </button>
-            </div>
+            {/* CAMERA PRESETS (Collapsible on narrow viewports) */}
+            {containerWidth >= 480 && (
+              <div className="flex items-center gap-0.5 font-mono text-[9px] text-[#A1A1AA]">
+                {(['ISO', 'TOP', 'FRONT'] as CameraView[]).map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setCameraPreset(view)}
+                    className={`px-1.5 py-1 rounded-sm uppercase transition-colors ${
+                      cameraView === view
+                        ? 'bg-[#27272A] text-[#F4F4F5] font-bold'
+                        : 'hover:text-[#F4F4F5] hover:bg-[#18181B]'
+                    }`}
+                  >
+                    {view}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={handleResetCamera}
+              className="p-1 text-[#A1A1AA] hover:text-[#F59E0B] hover:bg-[#18181B] rounded-sm transition-colors ml-0.5"
+              title="Reset Camera to ISO Default"
+            >
+              <RotateCcw className="w-3 h-3" strokeWidth={1.5} />
+            </button>
           </>
         )}
 
@@ -747,11 +913,11 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             className="w-full h-full block cursor-grab active:cursor-grabbing outline-none"
           />
 
-          {/* Active 3D Assembly Label */}
-          <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 bg-[#121215]/90 border border-[#27272A] rounded-sm px-2.5 py-1 font-mono text-[10px]">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="text-[#A1A1AA]">3D CAD ASSEMBLY:</span>
-            <span className="text-[#F59E0B] font-bold uppercase">{currentLab.code} // {storeLabId.toUpperCase()}</span>
+          {/* Active 3D Assembly Label - Truncated on narrow viewports */}
+          <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2 bg-[#121215]/90 border border-[#27272A] rounded-sm px-2.5 py-1 font-mono text-[10px] max-w-[200px] truncate">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shrink-0" />
+            <span className="text-[#A1A1AA] hidden sm:inline">3D CAD ASSEMBLY:</span>
+            <span className="text-[#F59E0B] font-bold uppercase truncate">{currentLab.code}</span>
           </div>
         </div>
       ) : (
@@ -772,7 +938,7 @@ export const CadViewport: React.FC<CadViewportProps> = ({
       {/* ─────────────────────────────────────────────────────────────
           4. BOTTOM-RIGHT LIVE HARDWARE & CAD TELEMETRY CARD
       ───────────────────────────────────────────────────────────── */}
-      <div className="absolute bottom-3 right-3 z-20 w-64 bg-[#121215]/95 border border-[#27272A] rounded-sm p-3 font-mono shadow-none backdrop-blur-none">
+      <div className="absolute bottom-3 right-3 z-20 w-64 max-w-[calc(100%-24px)] bg-[#121215]/95 border border-[#27272A] rounded-sm p-3 font-mono shadow-none backdrop-blur-none">
         <div className="flex items-center justify-between pb-1.5 border-b border-[#27272A] text-[10px] text-[#A1A1AA] font-bold uppercase tracking-wider">
           <span className="flex items-center gap-1.5">
             <Gauge className="w-3 h-3 text-[#F59E0B]" strokeWidth={1.5} />

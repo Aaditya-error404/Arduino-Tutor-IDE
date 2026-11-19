@@ -86,8 +86,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
           <span className="font-mono font-bold tracking-tight text-[#F4F4F5] uppercase text-[11px] flex items-center gap-1.5">
             SPARKBYTE
-            <span className="text-[#A1A1AA] font-normal">//</span>
-            <span className="text-[#06B6D4] font-medium tracking-normal text-[10px]">EDA WORKBENCH</span>
+            <span className="hidden sm:inline text-[#A1A1AA] font-normal">//</span>
+            <span className="hidden sm:inline text-[#06B6D4] font-medium tracking-normal text-[10px]">EDA WORKBENCH</span>
           </span>
         </div>
 
@@ -96,12 +96,12 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Machined Breadcrumb Selector */}
         <button
           onClick={onOpenCurriculumDrawer}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-[#121215] hover:bg-[#27272A] border border-[#27272A] hover:border-[#3F3F46] text-[#F4F4F5] font-mono text-[11px] tracking-wide transition-colors truncate group"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-[#121215] hover:bg-[#27272A] border border-[#27272A] hover:border-[#3F3F46] text-[#F4F4F5] font-mono text-[11px] tracking-wide transition-colors truncate group max-w-[140px] sm:max-w-[220px] lg:max-w-[320px]"
           title="Click to browse 22 Labs & 88 Lessons in Curriculum Drawer"
         >
-          <span className="text-[#F59E0B] font-semibold">{currentLab.code}</span>
-          <span className="text-[#71717A]">//</span>
-          <span className="text-[#A1A1AA] group-hover:text-[#F4F4F5] truncate max-w-[280px]">
+          <span className="text-[#F59E0B] font-semibold shrink-0">{currentLab.code}</span>
+          <span className="text-[#71717A] shrink-0">//</span>
+          <span className="text-[#A1A1AA] group-hover:text-[#F4F4F5] truncate">
             LESSON {String(currentLesson.globalIndex).padStart(2, '0')}: {currentLesson.title.toUpperCase()}
           </span>
           <ChevronDown className="w-3 h-3 text-[#71717A] group-hover:text-[#F4F4F5] shrink-0 ml-0.5" strokeWidth={1.5} />

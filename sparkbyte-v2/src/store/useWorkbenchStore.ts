@@ -138,6 +138,7 @@ interface WorkbenchStore {
   speed: number;
   loopCount: number;
   stepIndex: number;
+  pc: number; // Explicit AST Program Counter
   activePhase: 'setup' | 'loop';
   activeLineIndex: number;
   activeInstruction: InstructionNode | null;
@@ -186,6 +187,9 @@ interface WorkbenchStore {
   setSerialConnected: (connected: boolean) => void;
   addSerialLog: (log: string) => void;
 
+  // Throttled UI Snapshot Dispatcher (~15-20 FPS)
+  dispatchUiSnapshot: () => void;
+
   // Internal clock tick
   onClockTick: (deltaMs: number, virtualTime: number) => void;
 }
@@ -219,6 +223,9 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
   // Subscribe virtual clock to store tick
   globalVirtualClock.subscribe((deltaMs, virtualTime) => {
     get().onClockTick(deltaMs, virtualTime);
+  });
+  globalVirtualClock.subscribeUi(() => {
+    get().dispatchUiSnapshot();
   });
 
   // Setup AVR runner USART TX listener
@@ -261,6 +268,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
     speed: 1.0,
     loopCount: 0,
     stepIndex: 0,
+    pc: 0,
     activePhase: 'setup',
     activeLineIndex: 0,
     activeInstruction: null,
@@ -306,6 +314,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         isPaused: false,
         loopCount: 0,
         stepIndex: 0,
+        pc: 0,
         activePhase: 'setup',
         activeLineIndex: 0,
         activeInstruction: null,
@@ -342,6 +351,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         isPaused: false,
         loopCount: 0,
         stepIndex: 0,
+        pc: 0,
         activePhase: 'setup',
         activeLineIndex: 0,
         activeInstruction: null,
@@ -388,6 +398,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         compiled,
         vars: initialVars,
         stepIndex: 0,
+        pc: 0,
         activePhase: compiled.setupSteps.length > 0 ? 'setup' : 'loop',
         stepRemainingDelayMs: 0,
         totalExecutedSteps: 0,
@@ -444,6 +455,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
         isPaused: false,
         loopCount: 0,
         stepIndex: 0,
+        pc: 0,
         activePhase: 'setup',
         activeLineIndex: 0,
         activeInstruction: null,
@@ -514,6 +526,23 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
     setSerialConnected: (connected) => set({ serialConnected: connected }),
     addSerialLog: (log) => set((s) => ({ serialLogs: [...s.serialLogs.slice(-100), log] })),
 
+    dispatchUiSnapshot: () => {
+      const s = get();
+      if (!s.isRunning && !s.isPaused) return;
+      set({
+        hardwareState: { ...s.hardwareState },
+        stepIndex: s.stepIndex,
+        pc: s.stepIndex,
+        activePhase: s.activePhase,
+        loopCount: s.loopCount,
+        activeInstruction: s.activeInstruction,
+        activeLineIndex: s.activeLineIndex,
+        stepRemainingDelayMs: s.stepRemainingDelayMs,
+        scopeBuffer: [...s.scopeBuffer],
+        totalExecutedSteps: s.totalExecutedSteps
+      });
+    },
+
     onClockTick: (deltaMs, virtualTime) => {
       const state = get();
       if (!state.isRunning || (state.isPaused && deltaMs <= 0) || state.watchdogTripped) return;
@@ -557,6 +586,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
           if (newPhase === 'setup') {
             newPhase = 'loop';
             newStepIdx = 0;
+            currentSteps = 0;
           }
         } else if (newStepIdx < pool.length) {
           const inst = pool[newStepIdx];
@@ -589,9 +619,12 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
             if (newPhase === 'setup') {
               newPhase = 'loop';
               newStepIdx = 0;
+              currentSteps = 0;
             } else {
               newLoopCount++;
-              newStepIdx = 0;
+              const loopLen = compiled.loopSteps.length;
+              newStepIdx = loopLen > 0 ? (newStepIdx % loopLen) : 0;
+              currentSteps = 0;
             }
             remainingDelay = 40;
           }
@@ -604,8 +637,11 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
             const delayExpr = inst.expr || String(inst.durationMs || 1000);
             const delayVal = Number(evaluateExpression(delayExpr, state.vars, newHw));
             instBaseDuration = isNaN(delayVal) || !isFinite(delayVal) || delayVal <= 0 ? 1000 : Math.min(delayVal, 30000);
-            remainingDelay = instBaseDuration;
+            // Advance PC to next instruction before assigning remainingDelay so execution resumes promptly
             newStepIdx++;
+            remainingDelay = instBaseDuration;
+            // Reset watchdog step counter whenever a delay yields
+            currentSteps = 0;
           }
           // 5. Variable declaration / Assignment
           else if (inst.type === 'varDecl' && inst.varName) {
@@ -637,18 +673,25 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
             remainingDelay = 60;
           }
         } else {
-          // Phase complete
+          // Phase complete - modulo wrap on loopSteps
           if (newPhase === 'setup') {
             newPhase = 'loop';
             newStepIdx = 0;
             remainingDelay = 40;
+            currentSteps = 0;
           } else {
             newLoopCount++;
-            newStepIdx = 0;
+            const loopLen = compiled.loopSteps.length;
+            newStepIdx = loopLen > 0 ? (newStepIdx % loopLen) : 0;
             remainingDelay = 40;
+            currentSteps = 0;
             get().markLessonComplete(state.activeLabId, state.activeLessonId);
+            get().dispatchUiSnapshot();
           }
         }
+      } else {
+        // While timer delay is counting down and yielding virtual time, reset watchdog
+        currentSteps = 0;
       }
 
       // Generate real-time oscilloscope trace point
@@ -664,17 +707,17 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
       const maxScopePoints = 120;
       const updatedScope = [...state.scopeBuffer.slice(-(maxScopePoints - 1)), newPoint];
 
-      set({
-        hardwareState: newHw,
-        stepIndex: newStepIdx,
-        activePhase: newPhase,
-        loopCount: newLoopCount,
-        activeInstruction: activeInst,
-        activeLineIndex: activeLine,
-        stepRemainingDelayMs: remainingDelay,
-        scopeBuffer: updatedScope,
-        totalExecutedSteps: currentSteps
-      });
+      // Update transient state on store directly for 60fps reads (CadViewport / Oscilloscope)
+      state.hardwareState = newHw;
+      state.stepIndex = newStepIdx;
+      state.pc = newStepIdx;
+      state.activePhase = newPhase;
+      state.loopCount = newLoopCount;
+      state.activeInstruction = activeInst;
+      state.activeLineIndex = activeLine;
+      state.stepRemainingDelayMs = remainingDelay;
+      state.scopeBuffer = updatedScope;
+      state.totalExecutedSteps = currentSteps;
     }
   };
 });

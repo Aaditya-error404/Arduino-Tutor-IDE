@@ -4,15 +4,19 @@
  */
 
 export type ClockTickCallback = (deltaTimeMs: number, virtualTimeMs: number) => void;
+export type UiTickCallback = (virtualTimeMs: number) => void;
 
 export class VirtualSimulationClock {
   private rafId: number | null = null;
   private lastWallTime: number = 0;
+  private lastUiDispatchTime: number = 0;
+  private uiDispatchIntervalMs: number = 55; // ~18 FPS (50–65ms) to prevent main thread starvation
   private virtualTimeMs: number = 0;
   private speedMultiplier: number = 1.0;
   private isRunning: boolean = false;
   private isPaused: boolean = false;
   private tickCallbacks: Set<ClockTickCallback> = new Set();
+  private uiTickCallbacks: Set<UiTickCallback> = new Set();
 
   constructor(defaultSpeed: number = 1.0) {
     this.speedMultiplier = defaultSpeed;
@@ -23,6 +27,23 @@ export class VirtualSimulationClock {
     return () => {
       this.tickCallbacks.delete(cb);
     };
+  }
+
+  public subscribeUi(cb: UiTickCallback): () => void {
+    this.uiTickCallbacks.add(cb);
+    return () => {
+      this.uiTickCallbacks.delete(cb);
+    };
+  }
+
+  public triggerUiSnapshot(): void {
+    this.uiTickCallbacks.forEach((cb) => {
+      try {
+        cb(this.virtualTimeMs);
+      } catch (e) {
+        console.error('[VirtualClock] UI Subscriber error:', e);
+      }
+    });
   }
 
   public setSpeed(speed: number): void {
@@ -47,6 +68,7 @@ export class VirtualSimulationClock {
 
   public pause(): void {
     this.isPaused = true;
+    this.triggerUiSnapshot();
   }
 
   public resume(): void {
@@ -65,12 +87,14 @@ export class VirtualSimulationClock {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
+    this.triggerUiSnapshot();
   }
 
   public reset(): void {
     this.stop();
     this.virtualTimeMs = 0;
     this.lastWallTime = 0;
+    this.triggerUiSnapshot();
   }
 
   public getVirtualTime(): number {
@@ -107,6 +131,12 @@ export class VirtualSimulationClock {
           console.error('[VirtualClock] Subscriber error:', e);
         }
       });
+
+      // Throttled UI snapshot dispatcher (~15–20 FPS / every 50–65ms) to update DOM without starving main thread
+      if (currentWallTime - this.lastUiDispatchTime >= this.uiDispatchIntervalMs) {
+        this.lastUiDispatchTime = currentWallTime;
+        this.triggerUiSnapshot();
+      }
     }
 
     this.lastWallTime = currentWallTime;

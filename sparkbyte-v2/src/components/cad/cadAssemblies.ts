@@ -77,10 +77,19 @@ const matPcbGold = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 
 const matSteel = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.25, metalness: 0.9 });
 const matNylonWhite = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45, metalness: 0.05 });
 
+export interface PersistentDisplayConfig {
+  lcd?: { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture };
+  oled?: { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. MASTER BUILDER DISPATCHER FOR ALL 22 LABS
 // ─────────────────────────────────────────────────────────────────────────────
-export function buildLab3DAssembly(labId: string, customCode?: string | null): BuildAssemblyResult {
+export function buildLab3DAssembly(
+  labId: string,
+  customCode?: string | null,
+  persistentDisplays?: PersistentDisplayConfig
+): BuildAssemblyResult {
   const root = new THREE.Group();
   const meshes: THREE.Mesh[] = [];
   const refs: DynamicAssemblyRefs = {};
@@ -117,9 +126,9 @@ export function buildLab3DAssembly(labId: string, customCode?: string | null): B
     case 'gas':
       return buildGasAssembly(root, meshes, refs);
     case 'lcd':
-      return buildLcdAssembly(root, meshes, refs);
+      return buildLcdAssembly(root, meshes, refs, persistentDisplays?.lcd);
     case 'oled':
-      return buildOledAssembly(root, meshes, refs);
+      return buildOledAssembly(root, meshes, refs, persistentDisplays?.oled);
     case 'soil':
       return buildSoilAssembly(root, meshes, refs);
     case 'motor':
@@ -982,7 +991,12 @@ function buildGasAssembly(root: THREE.Group, meshes: THREE.Mesh[], refs: Dynamic
 // ─────────────────────────────────────────────────────────────────────────────
 // LAB 16: HD44780 1602 CHARACTER LCD WITH DYNAMIC CANVAS TEXTURE
 // ─────────────────────────────────────────────────────────────────────────────
-function buildLcdAssembly(root: THREE.Group, meshes: THREE.Mesh[], refs: DynamicAssemblyRefs): BuildAssemblyResult {
+function buildLcdAssembly(
+  root: THREE.Group,
+  meshes: THREE.Mesh[],
+  refs: DynamicAssemblyRefs,
+  persistentLcd?: { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture }
+): BuildAssemblyResult {
   // Green PCB (80x36mm)
   const pcbGeo = new THREE.BoxGeometry(80, 36, 1.6);
   const pcbMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.4 });
@@ -998,8 +1012,17 @@ function buildLcdAssembly(root: THREE.Group, meshes: THREE.Mesh[], refs: Dynamic
   root.add(bezel);
   meshes.push(bezel);
 
-  // Canvas-driven LCD Screen
-  if (typeof document !== 'undefined') {
+  // Canvas-driven LCD Screen (Persistent texture reuse)
+  if (persistentLcd) {
+    const screenMat = new THREE.MeshBasicMaterial({ map: persistentLcd.texture });
+    const screenGeo = new THREE.PlaneGeometry(64.5, 16);
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(0, 0, 8.9);
+    root.add(screen);
+
+    refs.lcdCanvas = persistentLcd.canvas;
+    refs.lcdTexture = persistentLcd.texture;
+  } else if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 128;
@@ -1036,7 +1059,12 @@ function buildLcdAssembly(root: THREE.Group, meshes: THREE.Mesh[], refs: Dynamic
 // ─────────────────────────────────────────────────────────────────────────────
 // LAB 17: SSD1306 0.96" I2C GRAPHIC OLED DISPLAY
 // ─────────────────────────────────────────────────────────────────────────────
-function buildOledAssembly(root: THREE.Group, meshes: THREE.Mesh[], refs: DynamicAssemblyRefs): BuildAssemblyResult {
+function buildOledAssembly(
+  root: THREE.Group,
+  meshes: THREE.Mesh[],
+  refs: DynamicAssemblyRefs,
+  persistentOled?: { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture }
+): BuildAssemblyResult {
   const pcbGeo = new THREE.BoxGeometry(28, 28, 1.6);
   const pcb = new THREE.Mesh(pcbGeo, matPcbBlack);
   pcb.position.set(0, 0, 4);
@@ -1051,8 +1079,17 @@ function buildOledAssembly(root: THREE.Group, meshes: THREE.Mesh[], refs: Dynami
   root.add(glass);
   meshes.push(glass);
 
-  // Dynamic Canvas Texture for 128x64 pixels
-  if (typeof document !== 'undefined') {
+  // Dynamic Canvas Texture for 128x64 pixels (Persistent texture reuse)
+  if (persistentOled) {
+    const screenGeo = new THREE.PlaneGeometry(24, 14);
+    const screenMat = new THREE.MeshBasicMaterial({ map: persistentOled.texture });
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(0, -2, 5.9);
+    root.add(screen);
+
+    refs.oledCanvas = persistentOled.canvas;
+    refs.oledTexture = persistentOled.texture;
+  } else if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 128;
