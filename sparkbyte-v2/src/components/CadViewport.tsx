@@ -29,6 +29,15 @@ import { LabSpec, LAB_INDEX_TO_STORE_ID } from '../data/mockCurriculum';
 import { LabStageRenderer } from './labs';
 import { useWorkbenchStore } from '../store/useWorkbenchStore';
 import { buildLab3DAssembly, DynamicAssemblyRefs } from './cad/cadAssemblies';
+import { ParametricEnclosureDrawer } from './cad/ParametricEnclosureDrawer';
+import {
+  EnclosureConfig,
+  DEFAULT_ENCLOSURE_CONFIG,
+  buildParametricEnclosure,
+  EnclosureResult,
+  buildServoRadarAttachment,
+  buildServoGripperAttachment
+} from '../cad/enclosureBuilder';
 
 interface CadViewportProps {
   currentLab: LabSpec;
@@ -138,6 +147,11 @@ export const CadViewport: React.FC<CadViewportProps> = ({
 
   // Responsive HUD container width
   const [containerWidth, setContainerWidth] = useState<number>(600);
+
+  // Parametric 3D CAD Enclosure State & References
+  const [enclosureConfig, setEnclosureConfig] = useState<EnclosureConfig>(DEFAULT_ENCLOSURE_CONFIG);
+  const enclosureRootRef = useRef<THREE.Group | null>(null);
+  const enclosureResultRef = useRef<EnclosureResult | null>(null);
 
   // Allocate persistent display textures once on mount
   useEffect(() => {
@@ -358,6 +372,19 @@ export const CadViewport: React.FC<CadViewportProps> = ({
         const clampedDist = Math.max(4, Math.min(65, rawDist));
         refs.sonarTarget.position.y = -clampedDist;
         refs.sonarBeam.scale.set(clampedDist / 25, clampedDist / 25, clampedDist / 25);
+
+        // Code-linked ultrasonic proximity hazard indication
+        const isHazard = rawDist < 15;
+        const beamMat = refs.sonarBeam.material as THREE.MeshBasicMaterial;
+        if (beamMat) {
+          beamMat.color.setHex(isHazard ? 0xef4444 : 0x06b6d4);
+          const pulse = 0.35 + Math.sin(Date.now() * 0.015) * 0.15;
+          beamMat.opacity = isHazard ? 0.7 : pulse;
+        }
+        const targetMat = (refs.sonarTarget as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        if (targetMat) {
+          targetMat.color.setHex(isHazard ? 0xdc2626 : 0xf59e0b);
+        }
       }
 
       if (refs.potKnob) {
@@ -484,6 +511,10 @@ export const CadViewport: React.FC<CadViewportProps> = ({
         disposeObject3D(calipersGroupRef.current);
         calipersGroupRef.current = null;
       }
+      if (enclosureRootRef.current) {
+        disposeObject3D(enclosureRootRef.current);
+        enclosureRootRef.current = null;
+      }
       disposeObject3D(bedGroup);
       renderer.forceContextLoss();
       renderer.dispose();
@@ -543,6 +574,74 @@ export const CadViewport: React.FC<CadViewportProps> = ({
       }
     });
   }, [storeLabId, customCode, viewportMode]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 3. DISPATCH & REBUILD PARAMETRIC ENCLOSURE & MECHANICAL SPLINE ATTACHMENTS
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (viewportMode !== 'cad' || !scene) return;
+
+    if (enclosureRootRef.current) {
+      disposeObject3D(enclosureRootRef.current);
+      scene.remove(enclosureRootRef.current);
+      enclosureRootRef.current = null;
+      enclosureResultRef.current = null;
+    }
+
+    if (enclosureConfig.enabled) {
+      const encResult = buildParametricEnclosure(storeLabId, enclosureConfig);
+      enclosureResultRef.current = encResult;
+      enclosureRootRef.current = encResult.rootGroup;
+      scene.add(encResult.rootGroup);
+    }
+
+    // Attach custom 3D mechanical fixture to SG90 servo horn if in servo lab
+    if (storeLabId === 'servo' && dynamicRefsRef.current.hornGroup) {
+      const hornGroup = dynamicRefsRef.current.hornGroup;
+      const existing = hornGroup.getObjectByName('servo-custom-attachment');
+      if (existing) {
+        disposeObject3D(existing);
+        hornGroup.remove(existing);
+      }
+      if (enclosureConfig.servoAttachment === 'radar') {
+        const radar = buildServoRadarAttachment();
+        radar.name = 'servo-custom-attachment';
+        radar.position.set(0, 0, 1.8);
+        hornGroup.add(radar);
+      } else if (enclosureConfig.servoAttachment === 'gripper') {
+        const gripper = buildServoGripperAttachment();
+        gripper.name = 'servo-custom-attachment';
+        gripper.position.set(0, 0, 1.8);
+        hornGroup.add(gripper);
+      }
+    }
+  }, [
+    storeLabId,
+    viewportMode,
+    enclosureConfig.enabled,
+    enclosureConfig.style,
+    enclosureConfig.wallThickness,
+    enclosureConfig.clearance,
+    enclosureConfig.hasStandoffs,
+    enclosureConfig.autoPortCutouts,
+    enclosureConfig.showLid,
+    enclosureConfig.servoAttachment
+  ]);
+
+  // Live exploded view separation update
+  useEffect(() => {
+    if (enclosureResultRef.current) {
+      enclosureResultRef.current.updateExploded(enclosureConfig.explodedPct);
+    }
+  }, [enclosureConfig.explodedPct]);
+
+  // Live ghost X-ray toggle update
+  useEffect(() => {
+    if (enclosureResultRef.current) {
+      enclosureResultRef.current.updateGhost(enclosureConfig.isGhost);
+    }
+  }, [enclosureConfig.isGhost]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 3. TOOLBAR CONTROLS: ORBIT, PAN, MEASURE, WIREFRAME, CAMERA PRESETS
@@ -919,6 +1018,30 @@ export const CadViewport: React.FC<CadViewportProps> = ({
             <span className="text-[#A1A1AA] hidden sm:inline">3D CAD ASSEMBLY:</span>
             <span className="text-[#F59E0B] font-bold uppercase truncate">{currentLab.code}</span>
           </div>
+
+          {/* Parametric 3D CAD Enclosure Controls Floating Drawer */}
+          <ParametricEnclosureDrawer
+            labId={storeLabId}
+            config={enclosureConfig}
+            telemetry={
+              enclosureResultRef.current?.telemetry || {
+                dimX: 104.8,
+                dimY: 84.8,
+                dimZ: 28.4,
+                volumeCm3: 42.5,
+                plaGrams: 20.0,
+                petgGrams: 20.5,
+                printTimeMinutes: 240,
+                triangleCount: 480
+              }
+            }
+            onChangeConfig={setEnclosureConfig}
+            onExportStl={() => {
+              if (enclosureResultRef.current) {
+                enclosureResultRef.current.exportStl();
+              }
+            }}
+          />
         </div>
       ) : (
         <div className="relative w-full h-full flex flex-col">
