@@ -613,6 +613,10 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
             newPhase = 'loop';
             newStepIdx = 0;
             currentSteps = 0;
+          } else {
+            // Loop is empty (e.g. void loop() {}): yield safely to prevent watchdog trip
+            remainingDelay = 100;
+            currentSteps = 0;
           }
         } else if (newStepIdx < pool.length) {
           const inst = pool[newStepIdx];
@@ -648,8 +652,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
               currentSteps = 0;
             } else {
               newLoopCount++;
-              const loopLen = compiled.loopSteps.length;
-              newStepIdx = loopLen > 0 ? (newStepIdx % loopLen) : 0;
+              newStepIdx = 0; // Return immediately re-enters loop() at instruction 0
               currentSteps = 0;
             }
             remainingDelay = 40;
@@ -707,8 +710,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => {
             currentSteps = 0;
           } else {
             newLoopCount++;
-            const loopLen = compiled.loopSteps.length;
-            newStepIdx = loopLen > 0 ? (newStepIdx % loopLen) : 0;
+            newStepIdx = 0; // Wrap seamlessly to instruction 0 for continuous void loop() execution
             remainingDelay = 40;
             currentSteps = 0;
             get().markLessonComplete(state.activeLabId, state.activeLessonId);

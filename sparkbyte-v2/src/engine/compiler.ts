@@ -504,30 +504,79 @@ export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgra
 
     const humanDesc = mappedHuman[idx] || trimmed;
 
-    // Detect and unroll for-loops (e.g. for (pos = 0; pos <= 180; pos += 1) { ... })
-    const forRegex = /^for\s*\(\s*(?:(?:int|var|float|byte)\s+)?(\w+)\s*=\s*([^;]+);\s*([^;]+);\s*([^)]+)\)\s*\{?$/;
+    // Detect and unroll for-loops
+    // Supports:
+    // 1. Same-line brace: for (int i = 0; i < 5; i++) { ... }
+    // 2. Next-line brace: for (int i = 0; i < 5; i++) \n { ... }
+    // 3. Inline block: for (int i = 0; i < 5; i++) { a; b; }
+    // 4. Inline statement: for (int i = 0; i < 5; i++) stmt;
+    const forRegex = /^for\s*\(\s*(?:(?:int|var|float|byte)\s+)?(\w+)\s*=\s*([^;]+);\s*([^;]+);\s*([^)]+)\)\s*(.*)$/;
     const forMatch = trimmed.match(forRegex);
     if (forMatch) {
       const varName = forMatch[1];
       const startVal = parseFloat(forMatch[2]) || 0;
       const condStr = forMatch[3].trim();
       const stepStr = forMatch[4].trim();
+      const afterParen = (forMatch[5] || '').trim();
 
-      // Find matching closing brace for this for loop
+      // Find matching body lines for this for-loop
       const bodyLines: Array<{ lineIdx: number; raw: string; human: string }> = [];
-      let forDepth = 1;
-      let j = idx + 1;
-      while (j < cppLines.length) {
-        const jTrimmed = cppLines[j].trim();
-        if (jTrimmed.includes('{')) forDepth++;
-        if (jTrimmed.includes('}')) {
-          forDepth--;
-          if (forDepth === 0) break;
+      let j = idx;
+
+      if (afterParen.startsWith('{') && afterParen.endsWith('}') && afterParen.length > 2) {
+        // Inline block on same line: for (...) { a; b; }
+        const inner = afterParen.slice(1, -1).trim();
+        const subStmts = splitStatements(inner);
+        for (const s of subStmts) {
+          if (s && s !== '{' && s !== '}') {
+            bodyLines.push({ lineIdx: idx, raw: s, human: mappedHuman[idx] || s });
+          }
         }
-        if (jTrimmed && !jTrimmed.startsWith('//')) {
-          bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+      } else if (afterParen && afterParen !== '{' && afterParen !== ';') {
+        // Inline statement on same line: for (...) stmt;
+        bodyLines.push({ lineIdx: idx, raw: afterParen, human: mappedHuman[idx] || afterParen });
+      } else if (afterParen === '{') {
+        // Standard block with { on same line
+        let forDepth = 1;
+        j = idx + 1;
+        while (j < cppLines.length) {
+          const jTrimmed = cppLines[j].trim();
+          const opens = (jTrimmed.match(/\{/g) || []).length;
+          const closes = (jTrimmed.match(/\}/g) || []).length;
+          forDepth += opens - closes;
+          if (forDepth <= 0) break;
+          if (jTrimmed && !jTrimmed.startsWith('//') && jTrimmed !== '{') {
+            bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+          }
+          j++;
         }
-        j++;
+      } else {
+        // afterParen is empty: brace on next line OR single statement on next line
+        j = idx + 1;
+        while (j < cppLines.length && !cppLines[j].trim()) j++;
+        if (j < cppLines.length) {
+          const nextTrimmed = cppLines[j].trim();
+          if (nextTrimmed.startsWith('{')) {
+            let forDepth = (nextTrimmed.match(/\{/g) || []).length - (nextTrimmed.match(/\}/g) || []).length;
+            if (forDepth > 0) {
+              j++;
+              while (j < cppLines.length) {
+                const jTrimmed = cppLines[j].trim();
+                const opens = (jTrimmed.match(/\{/g) || []).length;
+                const closes = (jTrimmed.match(/\}/g) || []).length;
+                forDepth += opens - closes;
+                if (forDepth <= 0) break;
+                if (jTrimmed && !jTrimmed.startsWith('//') && jTrimmed !== '{') {
+                  bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+                }
+                j++;
+              }
+            }
+          } else if (nextTrimmed && !nextTrimmed.startsWith('//')) {
+            // Single-statement body on next line
+            bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || nextTrimmed });
+          }
+        }
       }
 
       // Compute iteration sequence
@@ -575,9 +624,12 @@ export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgra
         });
 
         for (const b of bodyLines) {
-          const bodyNodes = parseLineToNodes(b.lineIdx, phase, b.raw, b.human, functions);
-          for (const bn of bodyNodes) {
-            targetPool.push(bn);
+          const subStmts = splitStatements(b.raw);
+          for (const s of subStmts) {
+            const bodyNodes = parseLineToNodes(b.lineIdx, phase, s, b.human, functions);
+            for (const bn of bodyNodes) {
+              targetPool.push(bn);
+            }
           }
         }
       }
@@ -586,24 +638,66 @@ export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgra
       continue;
     }
 
-    // Detect while loops and infinite for loops (e.g. while (1) { ... }, for(;;) { ... })
-    const whileMatch = trimmed.match(/^while\s*\(([^)]*)\)\s*\{?$/);
-    const forInfMatch = trimmed.match(/^for\s*\(\s*;\s*;\s*\)\s*\{?$/);
+    // Detect while loops and infinite for loops (e.g. while (1) { ... }, for(;;) { ... }, for(;;);)
+    const whileMatch = trimmed.match(/^while\s*\(([^)]*)\)\s*(.*)$/);
+    const forInfMatch = trimmed.match(/^for\s*\(\s*;\s*;\s*\)\s*(.*)$/);
     if (whileMatch || forInfMatch) {
+      const afterParen = (whileMatch ? whileMatch[2] : forInfMatch ? forInfMatch[1] : '').trim();
       const bodyLines: Array<{ lineIdx: number; raw: string; human: string }> = [];
-      let depth = 1;
-      let j = idx + 1;
-      while (j < cppLines.length) {
-        const jTrimmed = cppLines[j].trim();
-        if (jTrimmed.includes('{')) depth++;
-        if (jTrimmed.includes('}')) {
-          depth--;
-          if (depth === 0) break;
+      let j = idx;
+
+      if (afterParen === ';' || !afterParen && trimmed.endsWith(';')) {
+        // Empty spin loop: while(1); or for(;;);
+      } else if (afterParen.startsWith('{') && afterParen.endsWith('}') && afterParen.length > 2) {
+        // Inline block
+        const inner = afterParen.slice(1, -1).trim();
+        const subStmts = splitStatements(inner);
+        for (const s of subStmts) {
+          if (s && s !== '{' && s !== '}') {
+            bodyLines.push({ lineIdx: idx, raw: s, human: mappedHuman[idx] || s });
+          }
         }
-        if (jTrimmed && !jTrimmed.startsWith('//')) {
-          bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+      } else if (afterParen && afterParen !== '{') {
+        bodyLines.push({ lineIdx: idx, raw: afterParen, human: mappedHuman[idx] || afterParen });
+      } else if (afterParen === '{') {
+        let depth = 1;
+        j = idx + 1;
+        while (j < cppLines.length) {
+          const jTrimmed = cppLines[j].trim();
+          const opens = (jTrimmed.match(/\{/g) || []).length;
+          const closes = (jTrimmed.match(/\}/g) || []).length;
+          depth += opens - closes;
+          if (depth <= 0) break;
+          if (jTrimmed && !jTrimmed.startsWith('//') && jTrimmed !== '{') {
+            bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+          }
+          j++;
         }
-        j++;
+      } else {
+        j = idx + 1;
+        while (j < cppLines.length && !cppLines[j].trim()) j++;
+        if (j < cppLines.length) {
+          const nextTrimmed = cppLines[j].trim();
+          if (nextTrimmed.startsWith('{')) {
+            let depth = (nextTrimmed.match(/\{/g) || []).length - (nextTrimmed.match(/\}/g) || []).length;
+            if (depth > 0) {
+              j++;
+              while (j < cppLines.length) {
+                const jTrimmed = cppLines[j].trim();
+                const opens = (jTrimmed.match(/\{/g) || []).length;
+                const closes = (jTrimmed.match(/\}/g) || []).length;
+                depth += opens - closes;
+                if (depth <= 0) break;
+                if (jTrimmed && !jTrimmed.startsWith('//') && jTrimmed !== '{') {
+                  bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || jTrimmed });
+                }
+                j++;
+              }
+            }
+          } else if (nextTrimmed && !nextTrimmed.startsWith('//')) {
+            bodyLines.push({ lineIdx: j, raw: cppLines[j], human: mappedHuman[j] || nextTrimmed });
+          }
+        }
       }
 
       const phase = currentPhase === 'setup' ? 'setup' : currentPhase === 'loop' ? 'loop' : 'setup';
@@ -622,9 +716,12 @@ export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgra
         });
       } else {
         for (const b of bodyLines) {
-          const bodyNodes = parseLineToNodes(b.lineIdx, phase, b.raw, b.human, functions);
-          for (const bn of bodyNodes) {
-            targetPool.push(bn);
+          const subStmts = splitStatements(b.raw);
+          for (const s of subStmts) {
+            const bodyNodes = parseLineToNodes(b.lineIdx, phase, s, b.human, functions);
+            for (const bn of bodyNodes) {
+              targetPool.push(bn);
+            }
           }
         }
       }
@@ -702,6 +799,11 @@ function parseLineToNodes(
 ): InstructionNode[] {
   const trimmed = rawCpp.trim();
   const lower = trimmed.toLowerCase();
+
+  // Ignore bare punctuation lines (opening braces, stand-alone semicolons)
+  if (!trimmed || trimmed === '{' || trimmed === ';' || trimmed === '};') {
+    return [];
+  }
 
   // 1a. Return early statement
   if (trimmed === 'return;' || trimmed === 'return') {
