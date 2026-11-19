@@ -346,31 +346,85 @@ export const BuzzerLabView: React.FC = () => {
   const { hardwareState, updateHardwareState, isRunning } = useWorkbenchStore();
   const { buzzerActive, buzzerToneFreq } = hardwareState;
   const [audioMuted, setAudioMuted] = useState(false);
+  const [activeNoteName, setActiveNoteName] = useState<string | null>(null);
 
-  const isBuzzerSounding = isRunning && buzzerActive;
+  const isBuzzerSounding = (isRunning && buzzerActive) || activeNoteName !== null;
 
   useEffect(() => {
-    buzzerAudio.setEnabled(!audioMuted && isRunning);
-    if (isBuzzerSounding && !audioMuted && buzzerToneFreq > 0) {
+    buzzerAudio.setEnabled(!audioMuted);
+    if (isRunning && buzzerActive && !audioMuted && buzzerToneFreq > 0) {
       buzzerAudio.playTone(buzzerToneFreq);
-    } else {
+    } else if (!activeNoteName) {
       buzzerAudio.stopTone();
     }
     return () => {
       buzzerAudio.stopTone();
     };
-  }, [isBuzzerSounding, buzzerToneFreq, audioMuted, isRunning]);
+  }, [buzzerActive, buzzerToneFreq, audioMuted, isRunning, activeNoteName]);
 
   const notes = [
-    { name: 'C4', freq: 262 },
-    { name: 'D4', freq: 294 },
-    { name: 'E4', freq: 330 },
-    { name: 'F4', freq: 349 },
-    { name: 'G4', freq: 392 },
-    { name: 'A4', freq: 440 },
-    { name: 'B4', freq: 494 },
-    { name: 'C5', freq: 523 }
+    { name: 'C4', key: 'A', freq: 262 },
+    { name: 'D4', key: 'S', freq: 294 },
+    { name: 'E4', key: 'D', freq: 330 },
+    { name: 'F4', key: 'F', freq: 349 },
+    { name: 'G4', key: 'G', freq: 392 },
+    { name: 'A4', key: 'H', freq: 440 },
+    { name: 'B4', key: 'J', freq: 494 },
+    { name: 'C5', key: 'K', freq: 523 }
   ];
+
+  const playNote = (note: { name: string; key: string; freq: number }) => {
+    if (audioMuted) return;
+    setActiveNoteName(note.name);
+    buzzerAudio.playNote(note.freq, 280);
+    updateHardwareState({ buzzerToneFreq: note.freq, buzzerActive: true });
+    setTimeout(() => {
+      setActiveNoteName((curr) => (curr === note.name ? null : curr));
+      if (!isRunning) {
+        updateHardwareState({ buzzerActive: false });
+      }
+    }, 280);
+  };
+
+  // Keyboard Piano Keybindings (A, S, D, F, G, H, J, K or 1..8)
+  useEffect(() => {
+    const handlePianoKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable ||
+        target?.closest('.monaco-editor') !== null ||
+        activeEl?.tagName === 'INPUT' ||
+        activeEl?.tagName === 'TEXTAREA' ||
+        activeEl?.isContentEditable ||
+        activeEl?.closest('.monaco-editor') !== null;
+
+      if (isTyping) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const keyUpper = e.key.toUpperCase();
+      const noteMap: Record<string, typeof notes[0]> = {
+        'A': notes[0], '1': notes[0],
+        'S': notes[1], '2': notes[1],
+        'D': notes[2], '3': notes[2],
+        'F': notes[3], '4': notes[3],
+        'G': notes[4], '5': notes[4],
+        'H': notes[5], '6': notes[5],
+        'J': notes[6], '7': notes[6],
+        'K': notes[7], '8': notes[7],
+      };
+
+      const matched = noteMap[keyUpper];
+      if (matched) {
+        e.preventDefault();
+        playNote(matched);
+      }
+    };
+    window.addEventListener('keydown', handlePianoKey);
+    return () => window.removeEventListener('keydown', handlePianoKey);
+  }, [isRunning, audioMuted]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full p-4 relative">
@@ -386,7 +440,7 @@ export const BuzzerLabView: React.FC = () => {
             </div>
           )}
           <span className="text-xs font-mono font-bold text-slate-300">
-            {isBuzzerSounding ? `${buzzerToneFreq} Hz Acoustic Wave` : isRunning ? 'Silent (Awaiting tone())' : 'Standby (Clock Stopped)'}
+            {isBuzzerSounding ? `${buzzerToneFreq} Hz Acoustic Wave` : isRunning ? 'Silent (Awaiting tone())' : 'Standby (Play with keys A-K)'}
           </span>
         </div>
 
@@ -395,7 +449,7 @@ export const BuzzerLabView: React.FC = () => {
           <div className="flex justify-between">
             <span className="text-slate-400">Audio State:</span>
             <span className={`font-mono font-bold ${isBuzzerSounding ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`}>
-              {isBuzzerSounding ? 'SOUND ON' : isRunning ? 'MUTED' : 'STANDBY'}
+              {isBuzzerSounding ? 'SOUND ON' : audioMuted ? 'MUTED' : isRunning ? 'IDLE' : 'STANDBY'}
             </span>
           </div>
           <div className="flex justify-between">
@@ -427,7 +481,15 @@ export const BuzzerLabView: React.FC = () => {
               {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             </button>
             <button
-              onClick={() => updateHardwareState({ buzzerActive: !buzzerActive })}
+              onClick={() => {
+                if (buzzerActive) {
+                  buzzerAudio.stopTone();
+                  updateHardwareState({ buzzerActive: false });
+                } else {
+                  buzzerAudio.playTone(440);
+                  updateHardwareState({ buzzerToneFreq: 440, buzzerActive: true });
+                }
+              }}
               className={`px-2.5 py-1 rounded font-semibold transition-all ${
                 buzzerActive ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
               }`}
@@ -437,21 +499,29 @@ export const BuzzerLabView: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-8 gap-1">
-          {notes.map((n) => (
-            <button
-              key={n.name}
-              onClick={() => updateHardwareState({ buzzerToneFreq: n.freq, buzzerActive: true })}
-              className={`py-2 rounded font-mono font-bold text-center transition-all ${
-                buzzerToneFreq === n.freq && buzzerActive
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-              }`}
-            >
-              <div>{n.name}</div>
-              <div className="text-[9px] text-slate-400 font-normal">{n.freq}</div>
-            </button>
-          ))}
+        <div className="grid grid-cols-8 gap-1.5">
+          {notes.map((n) => {
+            const isPressed = activeNoteName === n.name || (buzzerToneFreq === n.freq && buzzerActive);
+            return (
+              <button
+                key={n.name}
+                onClick={() => playNote(n)}
+                className={`py-2 px-1 rounded font-mono text-center transition-all ${
+                  isPressed
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/40 ring-2 ring-amber-400 transform scale-105'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold'
+                }`}
+              >
+                <div className="text-xs">{n.name}</div>
+                <div className="text-[9px] text-amber-400 font-semibold mt-0.5">[{n.key}]</div>
+                <div className="text-[8px] text-slate-400 font-normal">{n.freq}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="text-[10px] text-slate-400 text-center font-mono pt-1 border-t border-slate-800/80">
+          Tip: Press keys <span className="text-amber-400 font-bold">[A, S, D, F, G, H, J, K]</span> or <span className="text-amber-400 font-bold">[1-8]</span> on your keyboard to play notes!
         </div>
       </div>
     </div>

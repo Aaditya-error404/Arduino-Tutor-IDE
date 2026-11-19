@@ -116,6 +116,9 @@ export const App: React.FC = () => {
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'j' || e.key === 'J')) {
         e.preventDefault();
         setConsoleOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleVerifyCode();
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);

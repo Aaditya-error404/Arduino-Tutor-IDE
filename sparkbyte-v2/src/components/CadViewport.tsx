@@ -458,8 +458,21 @@ export const CadViewport: React.FC<CadViewportProps> = ({
   useEffect(() => {
     if (viewportMode !== 'cad') return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = (e.target as HTMLElement)?.tagName;
-      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+      const target = e.target as HTMLElement | null;
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable ||
+        target?.closest('.monaco-editor') !== null ||
+        target?.closest('input, textarea, [contenteditable="true"]') !== null ||
+        activeEl?.tagName === 'INPUT' ||
+        activeEl?.tagName === 'TEXTAREA' ||
+        activeEl?.isContentEditable ||
+        activeEl?.closest('.monaco-editor') !== null;
+
+      if (isTyping) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();

@@ -81,6 +81,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [isOpen]);
 
+  // Global Escape key listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleGlobalEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalEsc);
+    return () => window.removeEventListener('keydown', handleGlobalEsc);
+  }, [isOpen, onClose]);
+
   // Build command registry
   const commands: CommandItem[] = useMemo(() => {
     const list: CommandItem[] = [

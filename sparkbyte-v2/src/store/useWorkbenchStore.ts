@@ -776,8 +776,13 @@ function applyInstructionToHardware(
       // Buzzer pin D8 or D12
       if ((pin === 8 || pin === 12) && (hw.activeLab === 'buzzer' || hw.activeLab === 'gas' || hw.activeLab === 'sonar')) {
         hw.buzzerActive = isHigh;
-        if (isHigh && (!hw.buzzerToneFreq || hw.buzzerToneFreq === 0)) {
-          hw.buzzerToneFreq = 1500;
+        if (isHigh) {
+          if (!hw.buzzerToneFreq || hw.buzzerToneFreq === 0) {
+            hw.buzzerToneFreq = 1500;
+          }
+          buzzerAudio.playTone(hw.buzzerToneFreq);
+        } else {
+          buzzerAudio.stopTone();
         }
       }
 
@@ -848,6 +853,7 @@ function applyInstructionToHardware(
       hw.buzzerActive = true;
       hw.buzzerToneFreq = freq;
       hw.currentMa = 22.5;
+      buzzerAudio.playTone(freq);
       break;
     }
 
@@ -855,6 +861,7 @@ function applyInstructionToHardware(
       hw.buzzerActive = false;
       hw.buzzerToneFreq = 0;
       hw.currentMa = 2.0;
+      buzzerAudio.stopTone();
       break;
 
     case 'lcd': {
