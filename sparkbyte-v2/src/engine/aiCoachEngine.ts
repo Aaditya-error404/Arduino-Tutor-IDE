@@ -718,6 +718,131 @@ export function inspectSpecificLineHindi(lineNum: number, snapshot: WorkbenchSta
 }
 
 // ============================================================================
+// 3.2 OFFLINE STEM, ELECTRONICS & PHYSICAL COMPUTING KNOWLEDGE BASE
+// ============================================================================
+
+export function queryOfflineKnowledgeBase(queryLower: string, snapshot: WorkbenchStateSnapshot): string | null {
+  const q = queryLower.trim();
+
+  // 1. President of India / Indian Institutions
+  if (q.includes('president of india') || q.includes('who is president of india') || q.includes('bharat ke rashtrapati')) {
+    return `### 🇮🇳 General Knowledge & Physical Computing
+
+The President of India is **Smt. Droupadi Murmu** (who assumed office in July 2022 as the 15th President of India).
+
+* **The ATL Connection:** In India, the Atal Innovation Mission (AIM) under NITI Aayog established Atal Tinkering Labs (ATL) across thousands of schools to teach students robotics, 3D printing, and Arduino microcontrollers—the exact 22 physical computing labs simulated here in SparkByte Studio!
+* **Active Lab Context:** You are currently in **${snapshot.activeLabTitle}**. Would you like to write a sketch to control the hardware?`;
+  }
+
+  // 2. Who invented Arduino
+  if (q.includes('invented arduino') || q.includes('who made arduino') || q.includes('origin of arduino') || q.includes('founder of arduino')) {
+    return `### 🇮🇹 The Origin of Arduino
+
+Arduino was founded in **2005** in Ivrea, Italy, by **Massimo Banzi, David Cuartielles, Tom Igoe, Gianluca Martino, and David Mellis**.
+
+* **Why it was built:** Traditional microcontroller development boards back in the 2000s (like the BASIC Stamp) cost over $100 and required complex parallel port programmers. The founders designed an affordable, open-source board powered by an 8-bit Atmel ATmega microcontroller with plug-and-play USB.
+* **The Name:** It was named after *Bar di Re Arduino*, a pub in Ivrea where the team met!`;
+  }
+
+  // 3. Kirchhoff's Laws
+  if (q.includes('kirchhoff') || q.includes('kcl') || q.includes('kvl')) {
+    return `### ⚡ Kirchhoff's Laws of Circuits
+
+1. **Kirchhoff's Current Law (KCL - Junction Rule):**
+   Electric charge is conserved. The total electric current flowing into a node must equal the total current flowing out:
+   $$\\sum I_{\\text{in}} = \\sum I_{\\text{out}}$$
+
+2. **Kirchhoff's Voltage Law (KVL - Loop Rule):**
+   Energy is conserved. The directed sum of electrical potential differences (voltages) around any closed circuit loop is zero:
+   $$\\sum V = 0$$
+
+*In our simulator, KVL ensures that the 5V supplied by the Arduino is shared between the LED's forward drop (~2.0V) and the 220Ω resistor (~3.0V)!*`;
+  }
+
+  // 4. Pulse Width Modulation (PWM)
+  if (q.includes('what is pwm') || q.includes('pulse width modulation') || q.includes('how does pwm work')) {
+    return `### 🌊 Pulse Width Modulation (PWM)
+
+Digital microcontrollers can only output **0V (LOW)** or **+5V (HIGH)**. They cannot directly generate intermediate analog voltages like 2.5V.
+
+**PWM simulates analog voltages** by rapidly turning a digital pin ON and OFF hundreds of times per second (490 Hz or 980 Hz on Uno):
+* **Duty Cycle:** The ratio of time the signal is ON vs total period:
+  $$\\text{Duty Cycle} = \\frac{T_{\\text{on}}}{T_{\\text{period}}} \\times 100\\%$$
+* **Uno PWM Pins:** Pins marked with a tilde: **3, 5, 6, 9, 10, 11** (\`analogWrite(pin, 0..255)\`).
+* **Average Voltage:**
+  $$V_{\\text{avg}} = 5\\text{V} \\times \\frac{\\text{duty}}{255}$$`;
+  }
+
+  // 5. Baud Rate
+  if (q.includes('baud rate') || q.includes('what is baud')) {
+    return `### ⚡ Baud Rate & UART Serial Transmission
+
+**Baud Rate** measures the symbol transmission speed across a serial bus in **bits per second (bps)**.
+
+* **Standard Arduino Rates:** \`9600\` baud (standard) or \`115200\` baud (high-speed).
+* **Bit Timing:** At 9600 baud, 1 bit lasts $\\frac{1}{9600} \\approx 104.17\\ \\mu\\text{s}$.
+* **Why it matters:** Both your Arduino (\`Serial.begin(baud);\`) and the Serial Monitor in our diagnostic bar must be set to the **exact same rate**, otherwise the timing drifts and incoming text turns into unreadable scrambled bytes!`;
+  }
+
+  // 6. Capacitors
+  if (q.includes('what is a capacitor') || q.includes('what is capacitor') || q.includes('how capacitor works')) {
+    return `### 🔋 Capacitors in Embedded Electronics
+
+A **Capacitor** stores electrical energy in an electrostatic field between two conductive plates separated by an insulator (dielectric), measured in Farads (µF, nF, pF).
+
+In Arduino circuits, capacitors act like tiny rechargeable shock absorbers:
+* **Decoupling / Bypass (0.1 µF Ceramic):** Placed right next to IC VCC pins to filter high-frequency noise.
+* **Bulk Smoothing (10 µF–100 µF Electrolytic):** Smooths voltage dips when high-draw motors or servos start spinning.`;
+  }
+
+  // 7. Transistors & MOSFETs
+  if (q.includes('transistor') || q.includes('mosfet') || q.includes('bjt')) {
+    return `### 🔀 Transistors & MOSFET Switches
+
+An ATmega328P pin can only supply a maximum of **40 mA** at **5V**. High-power devices (12V cooling fans, solenoids, DC motors) would instantly blow the microcontroller pin if connected directly!
+
+**A Transistor acts as an electronic switch:**
+* A tiny 5V / 5mA control signal from an Arduino pin to the **Base** (BJT) or **Gate** (MOSFET) allows a huge 12V / 5A current to flow from **Collector to Emitter** (or Drain to Source).
+* Used in **Lab 10 (Cooling Fan)** and **Lab 19 (L298N Motor Driver)**!`;
+  }
+
+  // 8. Diode
+  if (q.includes('what is a diode') || q.includes('how diode works') || q.includes('flyback')) {
+    return `### 💡 Diodes & Flyback Protection
+
+A **Diode** is a one-way valve for electric current:
+* **Forward-Biased:** Current flows freely when Anode (+) is more positive than Cathode (-) (overcoming ~0.7V forward drop for silicon, ~2.0V for LEDs).
+* **Reverse-Biased:** Blocks current completely.
+* **Flyback Diode in Motors/Relays:** When inductive coils de-energize, they produce a massive reverse voltage spike (hundreds of volts!). A flyback diode across the coil safely recirculates this energy, protecting the Arduino from destruction!`;
+  }
+
+  // 9. Analog-to-Digital Converter (ADC)
+  if (q.includes('what is adc') || q.includes('analog to digital') || q.includes('how analogread works')) {
+    return `### 🔢 10-Bit ADC (Analog-to-Digital Converter)
+
+The physical world is analog (continuous temperature, light, pressure), but computers only speak binary. The Arduino Uno contains a **10-bit Successive Approximation ADC** mapped across pins **A0 to A5**:
+
+$$10\\text{ bits} \\implies 2^{10} = 1024\\text{ discrete steps } (0 \\text{ to } 1023)$$
+
+$$\\text{ADC Reading} = \\text{round}\\left(\\frac{V_{\\text{in}}}{5.0\\text{V}} \\times 1023\\right)$$
+* Each step equals $\\frac{5.0\\text{V}}{1023} \\approx 4.88\\text{ mV}$. When A0 reads 512, the voltage is approximately **2.50V**!`;
+  }
+
+  // 10. Serial Communication: UART, I2C, SPI comparison
+  if (q.includes('difference between i2c and spi') || q.includes('i2c vs spi') || q.includes('communication protocols')) {
+    return `### 🌐 Arduino Communication Protocols: UART vs I2C vs SPI
+
+| Protocol | Wires Needed | Typical Speed | Max Devices | Master/Slave? | Common Usage |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **UART** | 2 (TX, RX) | 9.6k–115.2k bps | Point-to-point (2) | Peer-to-peer | USB Serial Monitor, GPS |
+| **I2C** | 2 (SDA, SCL) | 100k–400k bps | Up to 127 addressed | Single/Multi Master | OLED, LCD, IMU MPU6050 |
+| **SPI** | 4 (MOSI, MISO, SCK, CS) | 1M–16M bps | 1 per Chip Select pin | Master/Slave | SD cards, RFID-RC522 |`;
+  }
+
+  return null;
+}
+
+// ============================================================================
 // 3.5 PROCEDURAL ARDUINO C++ CODE GENERATOR (100% OFFLINE, ZERO API KEY)
 // ============================================================================
 
@@ -757,8 +882,7 @@ export function isCodeGenerationIntent(query: string): boolean {
     'blink', 'sweep', 'sensor', 'faster', 'slower', 'strobe', 'heartbeat',
     'pin', 'dual', 'alternate', 'servo', 'sonar', 'ultrasonic', 'motor',
     'relay', 'pump', 'buzzer', 'melody', 'tone', 'dim', 'fade',
-    'give me', 'need code', 'how to code', 'sample code', 'example code',
-    'arduino'
+    'give me', 'need code', 'how to code', 'sample code', 'example code'
   ];
 
   return codeKeywords.some((kw) => q.includes(kw));
@@ -1578,7 +1702,19 @@ export async function askAiCoach(
     };
   }
 
-  // 2. Procedural Code Generation Intent (Zero API Key): "generate code for lab 1 led", "make an LED blink faster", "control 2 LEDs"
+  // 2. STEM, Physical Computing & General Knowledge Base Intent (Instant Offline Lookup)
+  const kbReply = queryOfflineKnowledgeBase(queryLower, snapshot);
+  if (kbReply) {
+    return {
+      id: `msg-${Date.now()}`,
+      role: 'assistant',
+      content: kbReply,
+      timestamp: Date.now(),
+      source: 'offline_rule'
+    };
+  }
+
+  // 3. Procedural Code Generation Intent (Zero API Key): "generate code for lab 1 led", "make an LED blink faster", "control 2 LEDs"
   if (isCodeGenerationIntent(studentQuery)) {
     const gen = generateProceduralSketch(studentQuery, snapshot);
     const reply = `### ✨ Synthesized Arduino C++ Sketch: ${gen.title}

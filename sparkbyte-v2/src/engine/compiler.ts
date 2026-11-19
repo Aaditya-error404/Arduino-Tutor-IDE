@@ -170,6 +170,42 @@ export function evaluateExpression(
   const PI = Math.PI;
   const millis = () => Date.now();
 
+  // Virtual EEPROM Emulation (1024 bytes ATmega328P with localStorage persistence)
+  const getEeprom = (): number[] => {
+    try {
+      const stored = localStorage.getItem('sparkbyte_eeprom_storage');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return new Array(1024).fill(255);
+  };
+  const saveEeprom = (mem: number[]) => {
+    try {
+      localStorage.setItem('sparkbyte_eeprom_storage', JSON.stringify(mem));
+    } catch {}
+  };
+  const EEPROM = {
+    read: (addr: number): number => {
+      const mem = getEeprom();
+      const a = Math.max(0, Math.min(1023, Math.round(Number(addr) || 0)));
+      return mem[a] !== undefined ? mem[a] : 255;
+    },
+    write: (addr: number, val: number): void => {
+      const mem = getEeprom();
+      const a = Math.max(0, Math.min(1023, Math.round(Number(addr) || 0)));
+      const v = Math.max(0, Math.min(255, Math.round(Number(val) || 0)));
+      mem[a] = v;
+      saveEeprom(mem);
+    },
+    update: (addr: number, val: number): void => {
+      EEPROM.write(addr, val);
+    },
+    length: () => 1024
+  };
+
+  const digitalPinToInterrupt = (p: number) => (p === 2 ? 0 : p === 3 ? 1 : -1);
+  const attachInterrupt = () => {};
+  const detachInterrupt = () => {};
+
   // Arduino pin constants
   const A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
   const HIGH = 1, LOW = 0;
@@ -178,18 +214,18 @@ export function evaluateExpression(
   // Clean C++ casts and types
   let clean = trimmed;
   clean = clean.replace(/\((?:int|float|double|bool|byte|char|uint8_t|int16_t|long)\)/gi, '');
-  clean = clean.replace(/\b(static|volatile|unsigned|signed|int|float|double|bool|byte|char|var|const|unsigned\s+long|int16_t|uint8_t|uint16_t|uint32_t)\b\s*/gi, '');
+  clean = clean.replace(/\b(static|volatile|unsigned|signed|int|float|double|bool|byte|char|var|const|unsigned\s+long|int16_t|uint8_t|uint16_t|uint32_t|struct)\b\s*/gi, '');
   clean = clean.replace(/F\(([^)]+)\)/g, '$1');
 
   try {
     const fn = new Function(
-      'vars', 'hw', 'digitalRead', 'analogRead', 'map', 'constrain', 'pulseIn', 'isnan', 'pow', 'dht', 'rfid', 'Wire',
+      'vars', 'hw', 'digitalRead', 'analogRead', 'map', 'constrain', 'pulseIn', 'isnan', 'pow', 'dht', 'rfid', 'Wire', 'EEPROM', 'digitalPinToInterrupt', 'attachInterrupt', 'detachInterrupt',
       'fusedPitch', 'fusedRoll', 'accelPitch', 'accelRoll', 'atan2', 'sqrt', 'PI', 'millis',
       'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'HIGH', 'LOW', 'SSD1306_WHITE', 'SSD1306_BLACK',
       `with(vars) { return (${clean}); }`
     );
     const result = fn(
-      vars, hw, digitalRead, analogRead, map, constrain, pulseIn, isnan, pow, dht, rfid, Wire,
+      vars, hw, digitalRead, analogRead, map, constrain, pulseIn, isnan, pow, dht, rfid, Wire, EEPROM, digitalPinToInterrupt, attachInterrupt, detachInterrupt,
       fusedPitch, fusedRoll, accelPitch, accelRoll, atan2, sqrt, PI, millis,
       A0, A1, A2, A3, A4, A5, HIGH, LOW, SSD1306_WHITE, SSD1306_BLACK
     );
@@ -298,9 +334,68 @@ export function extractCallArgs(line: string, funcName: string): string[] | null
   return null;
 }
 
+export function transformSwitchCases(code: string): string {
+  if (!code || !code.includes('switch')) return code;
+  const lines = code.split('\n');
+  const result: string[] = [];
+  const switchStack: { expr: string; firstCase: boolean }[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    const switchMatch = trimmed.match(/^switch\s*\((.+)\)\s*\{?$/);
+    if (switchMatch) {
+      switchStack.push({ expr: switchMatch[1].trim(), firstCase: true });
+      result.push(`// ${trimmed}`);
+      continue;
+    }
+
+    if (switchStack.length > 0) {
+      const curSwitch = switchStack[switchStack.length - 1];
+
+      const caseMatch = trimmed.match(/^case\s+([^:]+)\s*:\s*(.*)$/);
+      if (caseMatch) {
+        const val = caseMatch[1].trim();
+        const remainder = caseMatch[2] ? caseMatch[2].trim() : '';
+        if (curSwitch.firstCase) {
+          result.push(`if ((${curSwitch.expr}) == (${val})) { ${remainder}`);
+          curSwitch.firstCase = false;
+        } else {
+          result.push(`} else if ((${curSwitch.expr}) == (${val})) { ${remainder}`);
+        }
+        continue;
+      }
+
+      const defaultMatch = trimmed.match(/^default\s*:\s*(.*)$/);
+      if (defaultMatch) {
+        const remainder = defaultMatch[1] ? defaultMatch[1].trim() : '';
+        result.push(`} else { ${remainder}`);
+        continue;
+      }
+
+      if (trimmed === 'break;' || trimmed === 'break') {
+        continue;
+      }
+
+      if (trimmed === '}') {
+        if (!curSwitch.firstCase) {
+          result.push('}');
+        }
+        switchStack.pop();
+        continue;
+      }
+    }
+
+    result.push(line);
+  }
+
+  return result.join('\n');
+}
+
 export function compileProgram(rawCpp: string, rawHuman: string): CompiledProgram {
-  const sanitizedCpp = sanitizeCpp(rawCpp);
-  const rawLines = sanitizedCpp.split('\n');
+  const transformedCpp = transformSwitchCases(sanitizeCpp(rawCpp));
+  const rawLines = transformedCpp.split('\n');
   const humanLines = (rawHuman || '').split('\n');
 
   // Expand multi-statement lines
@@ -966,9 +1061,23 @@ function parseLineToNodes(
     }];
   }
 
+  // 12b. EEPROM methods
+  if (lower.startsWith('eeprom.write') || lower.startsWith('eeprom.update')) {
+    const epArgs = extractCallArgs(trimmed, 'EEPROM.write') || extractCallArgs(trimmed, 'EEPROM.update');
+    return [{
+      id: `inst-${lineIndex}`,
+      lineIndex,
+      phase,
+      type: 'eeprom',
+      rawCpp,
+      plainEnglish: `EEPROM write address ${epArgs ? epArgs[0] : ''} with value ${epArgs ? epArgs[1] : ''}`,
+      expr: epArgs ? `${epArgs[0]}, ${epArgs[1]}` : undefined
+    }];
+  }
+
   // 13. servo.write(angle)
   const swArgs = trimmed.match(/\.write\s*\(/i) ? extractCallArgs(trimmed.replace(/^\w+\./, ''), 'write') : null;
-  if (swArgs && swArgs.length >= 1 && !lower.includes('serial.') && !lower.includes('wire.') && !lower.includes('lcd.')) {
+  if (swArgs && swArgs.length >= 1 && !lower.includes('serial.') && !lower.includes('wire.') && !lower.includes('lcd.') && !lower.includes('eeprom.')) {
     return [{
       id: `inst-${lineIndex}`,
       lineIndex,

@@ -989,6 +989,15 @@ function applyInstructionToHardware(
       break;
     }
 
+    case 'eeprom': {
+      if (inst.expr) {
+        try {
+          evaluateExpression(`EEPROM.write(${inst.expr})`, vars, hw);
+        } catch {}
+      }
+      break;
+    }
+
     case 'peripheral': {
       hw.currentMa = Math.max(hw.currentMa, 25.0);
       break;

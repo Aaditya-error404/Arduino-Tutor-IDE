@@ -30,6 +30,7 @@ export type InstructionType =
   | 'lcd'
   | 'motor'
   | 'wire'
+  | 'eeprom'
   | 'peripheral'
   | 'logic'
   | 'comment'
