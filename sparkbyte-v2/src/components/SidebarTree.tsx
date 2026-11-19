@@ -7,7 +7,7 @@
  * - Tabs: Curriculum (22 Labs / 88 Lessons), Lesson Guide, Component BOM, Pinout Datasheet.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Layers,
   BookOpen,
@@ -20,7 +20,9 @@ import {
   Search,
   PanelLeftClose,
   PanelLeftOpen,
-  Filter
+  Filter,
+  Minimize2,
+  Maximize2
 } from 'lucide-react';
 import {
   CURRICULUM_DATA,
@@ -28,8 +30,10 @@ import {
   LessonSpec,
   LAB_CATEGORIES,
   TOTAL_LABS,
-  TOTAL_LESSONS
+  TOTAL_LESSONS,
+  LAB_INDEX_TO_STORE_ID
 } from '../data/mockCurriculum';
+import { useWorkbenchStore } from '../store/useWorkbenchStore';
 
 export type SidebarTab = 'curriculum' | 'guide' | 'bom' | 'pinout';
 
@@ -48,6 +52,8 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
   isOpen,
   onToggleOpen
 }) => {
+  const { completedLessons } = useWorkbenchStore();
+
   const [activeTab, setActiveTab] = useState<SidebarTab>('curriculum');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL CATEGORIES');
@@ -55,11 +61,38 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
     [currentLab.id]: true
   });
 
+  // Keep currently active lab expanded whenever currentLab changes
+  useEffect(() => {
+    setExpandedLabIds((prev) => ({
+      ...prev,
+      [currentLab.id]: true
+    }));
+  }, [currentLab.id]);
+
   const toggleLabExpand = (labId: string) => {
     setExpandedLabIds((prev) => ({
       ...prev,
       [labId]: !prev[labId]
     }));
+  };
+
+  const collapseAll = () => {
+    setExpandedLabIds({});
+  };
+
+  const expandAll = () => {
+    const all: Record<string, boolean> = {};
+    CURRICULUM_DATA.forEach((l) => { all[l.id] = true; });
+    setExpandedLabIds(all);
+  };
+
+  // Helper to check if lesson is completed in store
+  const isLessonCompleted = (labId: string, lessonIndex: number): boolean => {
+    const storeLabId = LAB_INDEX_TO_STORE_ID[labId] || labId;
+    return (
+      completedLessons.includes(`${storeLabId}-${lessonIndex}`) ||
+      completedLessons.includes(`${labId}-${lessonIndex}`)
+    );
   };
 
   // Filter labs by search query and category
@@ -242,6 +275,29 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
                     ))}
                   </select>
                 </div>
+
+                {/* Industrial Collapse / Expand Toolbar */}
+                <div className="flex items-center justify-between pt-1 border-t border-[#27272A]/50 text-[10px] font-mono text-[#71717A]">
+                  <span className="uppercase tracking-wider">CURRICULUM TREE</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={collapseAll}
+                      className="px-1.5 py-0.5 rounded-sm bg-[#09090B] border border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46] transition-colors flex items-center gap-1"
+                      title="Collapse all 22 labs"
+                    >
+                      <Minimize2 className="w-2.5 h-2.5" />
+                      <span>COLLAPSE</span>
+                    </button>
+                    <button
+                      onClick={expandAll}
+                      className="px-1.5 py-0.5 rounded-sm bg-[#09090B] border border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46] transition-colors flex items-center gap-1"
+                      title="Expand all 22 labs"
+                    >
+                      <Maximize2 className="w-2.5 h-2.5" />
+                      <span>EXPAND</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Dense Tree List */}
@@ -249,7 +305,7 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
                 {filteredLabs.map((lab) => {
                   const isExpanded = Boolean(expandedLabIds[lab.id]);
                   const isCurrentLab = lab.id === currentLab.id;
-                  const completedCount = lab.lessons.filter((l) => l.completed).length;
+                  const completedCount = lab.lessons.filter((l) => isLessonCompleted(lab.id, l.lessonIndex)).length;
 
                   return (
                     <div key={lab.id} className="bg-[#09090B]">
@@ -286,6 +342,7 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
                           {lab.lessons.map((lesson) => {
                             const isCurrentLesson =
                               isCurrentLab && lesson.id === currentLesson.id;
+                            const isDone = isLessonCompleted(lab.id, lesson.lessonIndex) || lesson.completed;
 
                             return (
                               <button
@@ -298,7 +355,7 @@ export const SidebarTree: React.FC<SidebarTreeProps> = ({
                                 }`}
                               >
                                 <div className="flex items-center gap-2 truncate">
-                                  {lesson.completed ? (
+                                  {isDone ? (
                                     <CheckCircle2 className="w-3 h-3 text-[#10B981] shrink-0" strokeWidth={2} />
                                   ) : (
                                     <Circle className="w-3 h-3 text-[#52525B] shrink-0" strokeWidth={1.5} />

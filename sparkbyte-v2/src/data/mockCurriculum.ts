@@ -587,3 +587,37 @@ void loop() {
 
 export const TOTAL_LABS = CURRICULUM_DATA.length; // 22
 export const TOTAL_LESSONS = CURRICULUM_DATA.reduce((acc, lab) => acc + lab.lessons.length, 0); // 88
+
+export const LAB_INDEX_TO_STORE_ID: Record<string, string> = {
+  'lab-01': 'led',
+  'lab-02': 'servo',
+  'lab-03': 'button',
+  'lab-04': 'pot',
+  'lab-05': 'buzzer',
+  'lab-06': 'cad',
+  'lab-07': 'dmm',
+  'lab-08': 'ldr',
+  'lab-09': 'rgb',
+  'lab-10': 'temp',
+  'lab-11': 'sonar',
+  'lab-12': 'ir',
+  'lab-13': 'slicer',
+  'lab-14': 'dht',
+  'lab-15': 'gas',
+  'lab-16': 'lcd',
+  'lab-17': 'oled',
+  'lab-18': 'soil',
+  'lab-19': 'motor',
+  'lab-20': 'imu',
+  'lab-21': 'rfid',
+  'lab-22': 'iot'
+};
+
+export const STORE_ID_TO_LAB_INDEX: Record<string, string> = Object.entries(LAB_INDEX_TO_STORE_ID).reduce(
+  (acc, [k, v]) => {
+    acc[v] = k;
+    return acc;
+  },
+  {} as Record<string, string>
+);
+

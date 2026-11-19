@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import '@wokwi/elements';
 import { useWorkbenchStore } from './store/useWorkbenchStore';
 
 // Expose store globally for headless testing & telemetry verification

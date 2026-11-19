@@ -22,11 +22,13 @@ import {
   Copy,
   Check,
   Trash2,
-  Send
+  Send,
+  Waves
 } from 'lucide-react';
+import { Oscilloscope } from './Oscilloscope';
 
 export type FileTab = 'sketch.ino' | 'diagram.json' | 'pins.h';
-export type ConsoleTab = 'serial' | 'pins' | 'compiler';
+export type ConsoleTab = 'serial' | 'pins' | 'compiler' | 'scope';
 
 export interface PinStateTelemetry {
   pin: number;
@@ -251,6 +253,19 @@ export const CodeWorkspace: React.FC<CodeWorkspaceProps> = ({
                 <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                 <span>COMPILER DIAGNOSTICS</span>
               </button>
+
+              {/* OSCILLOSCOPE TAB */}
+              <button
+                onClick={() => setActiveConsoleTab('scope')}
+                className={`h-full px-2.5 flex items-center gap-1.5 font-mono text-[11px] border-r border-[#27272A] transition-colors relative ${
+                  activeConsoleTab === 'scope'
+                    ? 'bg-[#09090B] text-[#38BDF8] font-semibold border-t-2 border-t-[#38BDF8]'
+                    : 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#18181B]'
+                }`}
+              >
+                <Waves className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <span>OSCILLOSCOPE</span>
+              </button>
             </div>
 
             {/* Console Action Controls */}
@@ -392,6 +407,13 @@ export const CodeWorkspace: React.FC<CodeWorkspaceProps> = ({
                 <div className="text-[#71717A] pt-2 border-t border-[#27272A]">
                   AVR-GCC: 0 errors, 0 warnings. Compilation finished in 48ms.
                 </div>
+              </div>
+            )}
+
+            {/* 4. REAL-TIME 2-CHANNEL OSCILLOSCOPE */}
+            {activeConsoleTab === 'scope' && (
+              <div className="flex-1 overflow-hidden h-full flex flex-col">
+                <Oscilloscope dockMode={true} />
               </div>
             )}
           </div>
