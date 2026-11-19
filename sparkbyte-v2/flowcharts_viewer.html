@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SparkByte Studio v2 — System Flowcharts</title>
+  <!-- Mermaid.js for vector diagram rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #121215;
+      --border: #27272a;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --accent: #f59e0b;
+      --cyan: #06b6d4;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding: 32px 24px;
+      line-height: 1.5;
+    }
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 32px auto;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-family: monospace;
+      font-size: 11px;
+      background: #18181b;
+      border: 1px solid var(--border);
+      color: var(--cyan);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      font-family: monospace;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background: #27272a;
+      border-color: #3f3f46;
+      color: #ffffff;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #09090b;
+      font-weight: 600;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover {
+      background: #d97706;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto 48px auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: #18181b;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      font-family: monospace;
+      color: var(--accent);
+    }
+    .diagram-body {
+      padding: 24px;
+      overflow-x: auto;
+      background: #0c0c0e;
+      display: flex;
+      justify-content: center;
+    }
+    .diagram-body svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+    .instructions {
+      max-width: 1200px;
+      margin: 0 auto 32px auto;
+      background: #18181b;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan);
+      border-radius: 4px;
+      padding: 16px 20px;
+      font-size: 12.5px;
+    }
+    .instructions strong {
+      color: var(--cyan);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>
+        SPARKBYTE STUDIO v2
+        <span class="badge">SYSTEM FLOWCHARTS</span>
+      </h1>
+      <p style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+        High-Fidelity UI Architecture & Runtime Execution Pipeline Diagrams
+      </p>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      <button class="btn btn-primary" onclick="copyMermaidText()">📋 Copy Markdown for Gemini</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <strong>💡 Sharing with Google Gemini:</strong> You can click the <strong>"Copy Markdown for Gemini"</strong> button above, then simply paste (<code>Ctrl+V</code>) into your Gemini chat window. Gemini natively interprets and visualizes Mermaid flowcharts! Alternatively, take a screenshot or print to PDF to upload as an image.
+  </div>
+
+  <!-- DIAGRAM 1 -->
+  <div class="container">
+    <div class="card-header">
+      <span class="card-title">1. VISUAL & UI LAYOUT ARCHITECTURE</span>
+      <span style="font-size: 11px; color: var(--muted); font-family: monospace;">4-Zone IDE Split-Pane</span>
+    </div>
+    <div class="diagram-body">
+      <pre class="mermaid">
+flowchart TD
+    subgraph APP["App Container (100vh / 100vw • #09090B)"]
+        direction TB
+
+        subgraph ZONE1["ZONE 1: Top Telemetry Header (40px Fixed • #18181B)"]
+            direction LR
+            Z1_BRAND["Brand Mark: SPARKBYTE // EDA"]
+            Z1_BREAD["Breadcrumb: LAB 02 // LESSON 05"]
+            Z1_CMDK["Command Trigger: ⌘K Commands"]
+            Z1_STATUS["AVR ATmega328P • 16.0 MHz • 00:12.45s"]
+            Z1_CTRLS["[VERIFY] [RUN SIM] [RESET]"]
+            Z1_PANELS["[Left] [Bottom] [Right]"]
+            Z1_BRAND --> Z1_BREAD --> Z1_CMDK --> Z1_STATUS --> Z1_CTRLS --> Z1_PANELS
+        end
+
+        subgraph WORKSPACE["3-Pane Resizable Workbench"]
+            direction LR
+
+            subgraph ZONE2["ZONE 2: Left Technical Drawer (300px)"]
+                direction TB
+                Z2_RAIL["Activity Rail (48px)"]
+                subgraph Z2_PANELS["Panels"]
+                    Z2_TREE["22-Lab Tree (88 Lessons)"]
+                    Z2_GUIDE["Lesson Guide & Theory"]
+                    Z2_BOM["Component BOM Metadata"]
+                    Z2_PIN["ATmega328P Pinout Datasheet"]
+                end
+                Z2_RAIL --> Z2_PANELS
+            end
+
+            HANDLE1["Resize Divider 1"]
+
+            subgraph ZONE3["ZONE 3: Center Code Workspace"]
+                direction TB
+                subgraph Z3_TOP["Monaco Editor (70%)"]
+                    Z3_TABS["Tabs: sketch.ino | diagram.json | pins.h"]
+                    Z3_EDITOR["@monaco-editor/react (Arduino C++)"]
+                    Z3_STATUS["Footer: ATmega328P • Flash 7.5% • SRAM 8.9%"]
+                    Z3_TABS --> Z3_EDITOR --> Z3_STATUS
+                end
+
+                HANDLE_V["Split Handle"]
+
+                subgraph Z3_BOT["Telemetry Console Drawer (30%)"]
+                    Z3_CTABS["[SERIAL MONITOR] [PWM & PINS] [SCOPE] [COMPILER]"]
+                    subgraph Z3_VIEWS["Views"]
+                        Z3_SERIAL["Serial Monitor (115200 Baud)"]
+                        Z3_PINS["16-Pin State Inspector"]
+                        Z3_SCOPE["Dual-Channel Oscilloscope"]
+                        Z3_BUILD["Compiler Output & Memory"]
+                    end
+                    Z3_CTABS --> Z3_VIEWS
+                end
+                Z3_TOP --> HANDLE_V --> Z3_BOT
+            end
+
+            HANDLE2["Resize Divider 2"]
+
+            subgraph ZONE4["ZONE 4: Right CAD & Simulation Viewport"]
+                direction TB
+                subgraph Z4_HUD["HUD Floating Toolbar"]
+                    Z4_MODE["[3D CAD] ↔ [CIRCUIT]"]
+                    Z4_TOOLS["Orbit • Pan • Measure • Wireframe"]
+                    Z4_VIEWS["ISO • TOP • FRONT • SIDE • Reset"]
+                    Z4_STUDIO["CAD STUDIO ↗"]
+                    Z4_MODE --> Z4_TOOLS --> Z4_VIEWS --> Z4_STUDIO
+                end
+
+                subgraph Z4_VIEWCUBE["Onshape-Style ViewCube"]
+                    Z4_CUBE["TOP • ISO • FRONT • SIDE • FIT [F]"]
+                    Z4_COORDS["X: +120.0 • Y: +045.5 • Z: +000.0mm"]
+                    Z4_CUBE --> Z4_COORDS
+                end
+
+                subgraph Z4_STAGE["Viewport Area"]
+                    Z4_3DCAD["Three.js 3D WebGL Canvas (22 Labs)"]
+                    Z4_2DCKT["2D Circuit Stage (Wokwi & SVG)"]
+                end
+
+                subgraph Z4_CARD["Bottom-Right Telemetry Card"]
+                    Z4_METRIC["Angle, Distance, RPM, ADC Readout"]
+                    Z4_MATRIX["PWM Width, Current mA, Voltage V"]
+                    Z4_METRIC --> Z4_MATRIX
+                end
+                Z4_HUD --> Z4_STAGE
+                Z4_VIEWCUBE --> Z4_STAGE
+                Z4_STAGE --> Z4_CARD
+            end
+
+            ZONE2 --> HANDLE1 --> ZONE3 --> HANDLE2 --> ZONE4
+        end
+
+        ZONE1 --> WORKSPACE
+    end
+      </pre>
+    </div>
+  </div>
+
+  <!-- DIAGRAM 2 -->
+  <div class="container">
+    <div class="card-header">
+      <span class="card-title">2. COMPLETE WORKING & RUNTIME EXECUTION PIPELINE</span>
+      <span style="font-size: 11px; color: var(--muted); font-family: monospace;">Lexer • Virtual Clock • Hardware State • 3D Kinematics</span>
+    </div>
+    <div class="diagram-body">
+      <pre class="mermaid">
+flowchart TD
+    subgraph S1["1. Code Ingestion"]
+        C1["Student writes Arduino C++ in sketch.ino"] --> C2["handleCodeChange hoists code to setCustomCode"]
+        C2 --> C3["Student clicks [RUN SIM] or presses Space"]
+    end
+
+    subgraph S2["2. AST Lexer & Compiler (compiler.ts)"]
+        C3 --> COMP1["Resolves constants (LED_BUILTIN=13, A0-A5=14-19)"]
+        COMP1 --> COMP2["Balanced parenthesis parser (setupSteps[] & loopSteps[])"]
+        COMP2 --> COMP3["Phase 0 variable & array hoisting into vars{}"]
+        COMP3 --> COMP4["Generates CompiledProgram AST"]
+    end
+
+    subgraph S3["3. Virtual Clock Stepper (virtualClock.ts)"]
+        COMP4 --> CLK1["globalVirtualClock.start()"]
+        CLK1 --> CLK2["Ticks deltaMs (10ms steps @ 1x-10x speed)"]
+        CLK2 --> CLK3["Dispatches onClockTick(deltaMs, virtualTime)"]
+    end
+
+    subgraph S4["4. Hardware State Machine (useWorkbenchStore.ts)"]
+        CLK3 --> HW1{"Remaining Delay <= 0?"}
+        HW1 -- No --> HW2["Deduct deltaMs • Advance ScopeBuffer"]
+        HW1 -- Yes --> HW3["Increment steps • Watchdog Check (>10k steps)"]
+        HW3 --> HW4["Execute InstructionNode"]
+
+        HW4 --> HW_DISPATCH{"Instruction"}
+        HW_DISPATCH -- pinMode --> ACT_PIN["Update pinStates & pinModes"]
+        HW_DISPATCH -- digitalWrite --> ACT_DIG["Set Pin HIGH/LOW (LED, Relay, Motors)"]
+        HW_DISPATCH -- analogWrite --> ACT_PWM["Set pwmStates (Pins 3, 5, 6, 9, 10, 11)"]
+        HW_DISPATCH -- tone / noTone --> ACT_TONE["Set buzzerActive & buzzerToneFreq"]
+        HW_DISPATCH -- delay --> ACT_DELAY["Set stepRemainingDelayMs"]
+        HW_DISPATCH -- Serial.print --> ACT_SER["Buffer string in serialLogs[]"]
+
+        ACT_PIN --> HW_SYNC["Mutate HardwareState Store"]
+        ACT_DIG --> HW_SYNC
+        ACT_PWM --> HW_SYNC
+        ACT_TONE --> HW_SYNC
+        ACT_DELAY --> HW_SYNC
+        ACT_SER --> HW_SYNC
+    end
+
+    subgraph S5["5. Multi-Disciplinary Outputs"]
+        HW_SYNC --> OUT_AUDIO["Web Audio Synthesizer (audioEngine.ts)<br/>Linear ramp anti-pop square wave"]
+        HW_SYNC --> OUT_SCOPE["Oscilloscope Stream (computeScopeCh1/Ch2)<br/>Rolling 120-sample voltage trace"]
+        HW_SYNC --> OUT_CONSOLE["Console Terminal & 16-Pin GPIO Matrix"]
+
+        HW_SYNC --> OUT_3DCAD["3D CAD WebGL Engine (CadViewport.tsx)"]
+        subgraph CAD_KINEMATICS["3D Kinematics Transforms"]
+            K1["Servo Horn: rotation.z = degToRad(servoAngle - 90)"]
+            K2["Motor Fan: rotation.z += (motorSpeed / 255) * 0.45"]
+            K3["IMU Board: rotation.x = pitch, rotation.y = roll"]
+            K4["Sonar: position.y = -distanceCm"]
+            K5["Potentiometer: rotation.z = -knobAngle"]
+            K6["Tactile Switch: plunger moves down 1.5mm"]
+            K7["Deadbolt: latch slides 18mm unlocked"]
+            K8["Displays: Dynamic Canvas Textures for LCD & OLED"]
+        end
+        OUT_3DCAD --> CAD_KINEMATICS
+    end
+
+    CAD_KINEMATICS --> LOOP_NEXT["Next Clock Cycle (10ms tick)"]
+    OUT_AUDIO --> LOOP_NEXT
+    OUT_SCOPE --> LOOP_NEXT
+    LOOP_NEXT --> CLK2
+      </pre>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0c0c0e',
+        primaryColor: '#18181b',
+        primaryTextColor: '#f4f4f5',
+        primaryBorderColor: '#27272a',
+        lineColor: '#f59e0b',
+        secondaryColor: '#0284c7',
+        tertiaryColor: '#10b981'
+      }
+    });
+
+    function copyMermaidText() {
+      const text = `# SparkByte Studio v2 · Flowcharts\n\nRefer to sparkbyte_complete_system_flowcharts.md for complete Mermaid diagrams.`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Markdown summary copied to clipboard! You can now paste it directly into Gemini.");
+      });
+    }
+  </script>
+</body>
+</html>
