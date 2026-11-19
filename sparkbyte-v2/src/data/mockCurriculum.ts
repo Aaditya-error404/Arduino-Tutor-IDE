@@ -621,3 +621,21 @@ export const STORE_ID_TO_LAB_INDEX: Record<string, string> = Object.entries(LAB_
   {} as Record<string, string>
 );
 
+// ─── SYNCHRONIZE STARTER CODE & PINS ACROSS ALL 22 LABS & 88 LESSONS ─────────────
+import { STARTER_SKETCHES, LAB_PINS } from './starterSketches';
+
+CURRICULUM_DATA.forEach((lab) => {
+  const storeLabKey = LAB_INDEX_TO_STORE_ID[lab.id];
+  const labSketches = storeLabKey ? STARTER_SKETCHES[storeLabKey] : undefined;
+  const labPins = storeLabKey ? LAB_PINS[storeLabKey] : undefined;
+  lab.lessons.forEach((lesson) => {
+    if (labSketches && labSketches[lesson.lessonIndex]) {
+      lesson.defaultFiles['sketch.ino'] = labSketches[lesson.lessonIndex];
+    }
+    if (labPins) {
+      lesson.defaultFiles['pins.h'] = labPins;
+    }
+  });
+});
+
+

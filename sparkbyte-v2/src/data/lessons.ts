@@ -1591,6 +1591,18 @@ export const ALL_LABS: Lab[] = [
   }
 ];
 
+// Attach curated starter sketches to ALL_LABS
+import { STARTER_SKETCHES } from './starterSketches';
+ALL_LABS.forEach((lab) => {
+  const labSketches = STARTER_SKETCHES[lab.id];
+  if (!labSketches) return;
+  lab.lessons.forEach((lesson) => {
+    if (labSketches[lesson.id]) {
+      lesson.defaultCode.cpp = labSketches[lesson.id];
+    }
+  });
+});
+
 export const LAB_MAP: Record<string, Lab> = ALL_LABS.reduce((acc, lab) => {
   acc[lab.id] = lab;
   return acc;

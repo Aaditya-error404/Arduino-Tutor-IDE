@@ -193,6 +193,15 @@ export function evaluateExpression(
   const accelRoll = hw.imuRoll !== undefined ? hw.imuRoll : 0;
   const atan2 = Math.atan2;
   const sqrt = Math.sqrt;
+  const exp = Math.exp;
+  const abs = Math.abs;
+  const min = Math.min;
+  const max = Math.max;
+  const round = Math.round;
+  const floor = Math.floor;
+  const sin = Math.sin;
+  const cos = Math.cos;
+  const tan = Math.tan;
   const PI = Math.PI;
   const millis = () => Date.now();
 
@@ -234,6 +243,7 @@ export function evaluateExpression(
 
   // Arduino pin constants
   const A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
+  const LED_BUILTIN = 13;
   const HIGH = 1, LOW = 0;
   const SSD1306_WHITE = 1, SSD1306_BLACK = 0;
 
@@ -245,15 +255,15 @@ export function evaluateExpression(
 
   try {
     const fn = new Function(
-      'vars', 'hw', 'digitalRead', 'analogRead', 'map', 'constrain', 'pulseIn', 'isnan', 'pow', 'dht', 'rfid', 'Wire', 'EEPROM', 'digitalPinToInterrupt', 'attachInterrupt', 'detachInterrupt',
+      'vars', 'hw', 'digitalRead', 'analogRead', 'map', 'constrain', 'pulseIn', 'isnan', 'pow', 'exp', 'abs', 'min', 'max', 'round', 'floor', 'sin', 'cos', 'tan', 'dht', 'rfid', 'Wire', 'EEPROM', 'digitalPinToInterrupt', 'attachInterrupt', 'detachInterrupt',
       'fusedPitch', 'fusedRoll', 'accelPitch', 'accelRoll', 'atan2', 'sqrt', 'PI', 'millis',
-      'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'HIGH', 'LOW', 'SSD1306_WHITE', 'SSD1306_BLACK',
+      'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'LED_BUILTIN', 'HIGH', 'LOW', 'SSD1306_WHITE', 'SSD1306_BLACK',
       `with(vars) { return (${clean}); }`
     );
     const result = fn(
-      vars, hw, digitalRead, analogRead, map, constrain, pulseIn, isnan, pow, dht, rfid, Wire, EEPROM, digitalPinToInterrupt, attachInterrupt, detachInterrupt,
+      vars, hw, digitalRead, analogRead, map, constrain, pulseIn, isnan, pow, exp, abs, min, max, round, floor, sin, cos, tan, dht, rfid, Wire, EEPROM, digitalPinToInterrupt, attachInterrupt, detachInterrupt,
       fusedPitch, fusedRoll, accelPitch, accelRoll, atan2, sqrt, PI, millis,
-      A0, A1, A2, A3, A4, A5, HIGH, LOW, SSD1306_WHITE, SSD1306_BLACK
+      A0, A1, A2, A3, A4, A5, LED_BUILTIN, HIGH, LOW, SSD1306_WHITE, SSD1306_BLACK
     );
     if (typeof result === 'boolean') return result ? 1 : 0;
     if (typeof result === 'number') {

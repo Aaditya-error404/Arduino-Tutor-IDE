@@ -198,6 +198,8 @@ function extractInitialVars(compiled: CompiledProgram, hw: HardwareState): Recor
         try { vars[step.varName] = JSON.parse(step.value); } catch { vars[step.varName] = []; }
       } else if (step.expr) {
         vars[step.varName] = evaluateExpression(step.expr, vars, hw);
+      } else if (step.value !== undefined) {
+        vars[step.varName] = step.value;
       }
     }
   }
@@ -698,7 +700,15 @@ function applyInstructionToHardware(
       else if (u === 'A3' || u === '17') pin = 17;
       else if (u === 'A4' || u === '18') pin = 18;
       else if (u === 'A5' || u === '19') pin = 19;
-      else pin = parseInt(rawPin, 10);
+      else if (u === 'LED_BUILTIN') pin = 13;
+      else {
+        const evalPin = evaluateExpression(rawPin, vars, hw);
+        if (typeof evalPin === 'number' && !isNaN(evalPin)) {
+          pin = evalPin;
+        } else {
+          pin = parseInt(rawPin, 10);
+        }
+      }
     }
   } else {
     pin = NaN;
