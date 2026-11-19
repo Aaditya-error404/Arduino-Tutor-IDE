@@ -19,7 +19,8 @@ import {
   ChevronDown,
   PanelLeft,
   PanelBottom,
-  PanelRight
+  PanelRight,
+  Search
 } from 'lucide-react';
 import { LabSpec, LessonSpec } from '../data/mockCurriculum';
 
@@ -41,6 +42,7 @@ interface TopBarProps {
   onToggleConsole?: () => void;
   cadViewportOpen?: boolean;
   onToggleCadViewport?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -59,7 +61,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   consoleOpen = true,
   onToggleConsole,
   cadViewportOpen = true,
-  onToggleCadViewport
+  onToggleCadViewport,
+  onOpenCommandPalette
 }) => {
   // Format virtual time into mm:ss.ms (tabular format)
   const formatTime = (ms: number): string => {
@@ -103,6 +106,21 @@ export const TopBar: React.FC<TopBarProps> = ({
           </span>
           <ChevronDown className="w-3 h-3 text-[#71717A] group-hover:text-[#F4F4F5] shrink-0 ml-0.5" strokeWidth={1.5} />
         </button>
+
+        {/* Command Palette Trigger (Ctrl+K / ⌘K) */}
+        {onOpenCommandPalette && (
+          <button
+            onClick={onOpenCommandPalette}
+            className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-sm bg-[#121215] hover:bg-[#27272A] border border-[#27272A] hover:border-[#3F3F46] text-[#71717A] hover:text-[#F4F4F5] font-mono text-[10.5px] transition-colors"
+            title="Open Industrial Command Palette (Ctrl+K or ⌘K)"
+          >
+            <Search className="w-3 h-3 text-[#71717A]" strokeWidth={1.5} />
+            <span className="hidden lg:inline text-[#A1A1AA]">Commands</span>
+            <kbd className="px-1 py-0.2 rounded-sm bg-[#18181B] text-[#A1A1AA] text-[9px] border border-[#27272A]">
+              ⌘K
+            </kbd>
+          </button>
+        )}
       </div>
 
       {/* ─────────────────────────────────────────────────────────────

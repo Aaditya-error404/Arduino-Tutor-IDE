@@ -222,6 +222,29 @@ export const CodeWorkspace: React.FC<CodeWorkspaceProps> = ({
           }}
         />
       </div>
+
+      {/* Monaco Editor Industrial Status Bar */}
+      <div className="h-[22px] bg-[#121215] border-t border-[#27272A] px-2.5 flex items-center justify-between font-mono text-[9.5px] text-[#71717A] shrink-0 select-none">
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+            <span className="text-[#A1A1AA] font-semibold">ATmega328P</span>
+          </span>
+          <span className="text-[#27272A]">•</span>
+          <span>16.0 MHz</span>
+          <span className="text-[#27272A]">•</span>
+          <span className="hidden sm:inline">FLASH: 2,418 B (7.5%)</span>
+          <span className="text-[#27272A] hidden sm:inline">•</span>
+          <span className="hidden sm:inline">SRAM: 184 B (8.9%)</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <span>Spaces: 2</span>
+          <span className="text-[#27272A]">•</span>
+          <span>UTF-8</span>
+          <span className="text-[#27272A]">•</span>
+          <span className="text-[#06B6D4] font-medium uppercase">{activeFile === 'diagram.json' ? 'JSON' : 'C++ (ARDUINO)'}</span>
+        </div>
+      </div>
     </div>
   );
 

@@ -25,6 +25,7 @@ import { SidebarTree } from './components/SidebarTree';
 import { CodeWorkspace, FileTab, PinStateTelemetry } from './components/CodeWorkspace';
 import { CadViewport } from './components/CadViewport';
 import { AiCoachPanel } from './components/AiCoachPanel';
+import { CommandPalette } from './components/CommandPalette';
 import { CURRICULUM_DATA, LabSpec, LessonSpec, LAB_INDEX_TO_STORE_ID } from './data/mockCurriculum';
 import { CadStudioPage } from './pages/CadStudioPage';
 import { useWorkbenchStore } from './store/useWorkbenchStore';
@@ -90,6 +91,7 @@ export const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [consoleOpen, setConsoleOpen] = useState(true);
   const [cadViewportOpen, setCadViewportOpen] = useState(true);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeFile, setActiveFile] = useState<FileTab>('sketch.ino');
   const [files, setFiles] = useState<Record<FileTab, string>>(() => ({
     ...currentLesson.defaultFiles
@@ -97,7 +99,28 @@ export const App: React.FC = () => {
 
   const handleCodeChange = (file: FileTab, code: string) => {
     setFiles((prev) => ({ ...prev, [file]: code }));
+    if (file === 'sketch.ino') {
+      setCustomCode(code);
+    }
   };
+
+  // Global Keyboard Shortcuts (Cmd+K / Ctrl+K, Ctrl+B, Ctrl+J)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        setSidebarOpen((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'j' || e.key === 'J')) {
+        e.preventDefault();
+        setConsoleOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // ──────────────────────────────────────────────────────────────────────────
   // VIRTUAL CLOCK — subscribe for virtualTimeMs display in TopBar
@@ -247,6 +270,7 @@ export const App: React.FC = () => {
         onToggleConsole={() => setConsoleOpen(!consoleOpen)}
         cadViewportOpen={cadViewportOpen}
         onToggleCadViewport={() => setCadViewportOpen(!cadViewportOpen)}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
       />
 
       {/* ─────────────────────────────────────────────────────────────
@@ -367,6 +391,23 @@ export const App: React.FC = () => {
       <AiCoachPanel
         isDrawer={false}
         onClose={() => setAiCoachOpen(false)}
+      />
+
+      {/* ─────────────────────────────────────────────────────────────
+          GLOBAL: INDUSTRIAL COMMAND PALETTE (Ctrl+K / ⌘K)
+      ───────────────────────────────────────────────────────────── */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onSelectLesson={handleSelectLesson}
+        onRunSimulation={handleRunSimulation}
+        onStopSimulation={handleStopSimulation}
+        onResetSimulation={handleResetSimulation}
+        onVerifyCode={handleVerifyCode}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onToggleConsole={() => setConsoleOpen(!consoleOpen)}
+        onToggleCadViewport={() => setCadViewportOpen(!cadViewportOpen)}
+        isRunning={storeRunning}
       />
     </div>
   );

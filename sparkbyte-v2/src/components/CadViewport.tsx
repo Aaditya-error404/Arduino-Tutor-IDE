@@ -43,7 +43,7 @@ interface CadViewportProps {
 }
 
 export type CadTool = 'orbit' | 'pan' | 'measure' | 'wireframe';
-export type CameraView = 'ISO' | 'TOP' | 'FRONT';
+export type CameraView = 'ISO' | 'TOP' | 'FRONT' | 'SIDE';
 export type ViewportMode = 'cad' | 'circuit';
 
 export const CadViewport: React.FC<CadViewportProps> = ({
@@ -442,6 +442,10 @@ export const CadViewport: React.FC<CadViewportProps> = ({
         camera.position.set(0, -220, 15);
         controls.target.set(0, 0, 15);
         break;
+      case 'SIDE':
+        camera.position.set(220, 0, 15);
+        controls.target.set(0, 0, 15);
+        break;
     }
     controls.update();
   };
@@ -449,6 +453,34 @@ export const CadViewport: React.FC<CadViewportProps> = ({
   const handleResetCamera = () => {
     setCameraPreset('ISO');
   };
+
+  // 4. Keyboard Shortcuts for CAD Viewport (F = Zoom to Fit, 1..4 = Presets, W = Wireframe, M = Measure)
+  useEffect(() => {
+    if (viewportMode !== 'cad') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (e.target as HTMLElement)?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        handleResetCamera();
+      } else if (e.key === '1') {
+        setCameraPreset('ISO');
+      } else if (e.key === '2') {
+        setCameraPreset('TOP');
+      } else if (e.key === '3') {
+        setCameraPreset('FRONT');
+      } else if (e.key === '4') {
+        setCameraPreset('SIDE');
+      } else if (e.key === 'w' || e.key === 'W') {
+        setIsWireframe((prev) => !prev);
+      } else if (e.key === 'm' || e.key === 'M') {
+        setActiveTool((prev) => (prev === 'measure' ? 'orbit' : 'measure'));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewportMode]);
 
   return (
     <div
@@ -466,17 +498,91 @@ export const CadViewport: React.FC<CadViewportProps> = ({
         }}
       />
 
-      {/* Axis Marker at Center-Origin */}
-      <div className="absolute top-4 right-4 pointer-events-none flex flex-col items-end gap-1 font-mono text-[9px] text-[#71717A] z-10">
-        <span>X: +120.0mm</span>
-        <span>Y: +045.5mm</span>
-        <span>Z: +000.0mm</span>
-        <div className="flex items-center gap-1.5 pt-1">
-          <span className="w-2 h-[2px] bg-[#EF4444]" />
-          <span className="w-2 h-[2px] bg-[#10B981]" />
-          <span className="w-2 h-[2px] bg-[#06B6D4]" />
+      {/* ─────────────────────────────────────────────────────────────
+          ONSHAPE-STYLE INDUSTRIAL VIEWCUBE & AXIS GIZMO (TOP-RIGHT)
+      ───────────────────────────────────────────────────────────── */}
+      {viewportMode === 'cad' ? (
+        <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1.5 font-mono select-none">
+          {/* ViewCube Box */}
+          <div className="bg-[#121215]/95 border border-[#27272A] rounded-sm p-1.5 flex flex-col items-center gap-1 shadow-none backdrop-blur-none">
+            {/* 3D Face Selector Matrix */}
+            <div className="grid grid-cols-2 gap-1 text-[9px] font-bold">
+              <button
+                onClick={() => setCameraPreset('TOP')}
+                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                  cameraView === 'TOP'
+                    ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
+                    : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
+                }`}
+                title="Top View (XY Plane) [2]"
+              >
+                TOP
+              </button>
+              <button
+                onClick={() => setCameraPreset('ISO')}
+                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                  cameraView === 'ISO'
+                    ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
+                    : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
+                }`}
+                title="Isometric View [1]"
+              >
+                ISO
+              </button>
+              <button
+                onClick={() => setCameraPreset('FRONT')}
+                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                  cameraView === 'FRONT'
+                    ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
+                    : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
+                }`}
+                title="Front View (XZ Plane) [3]"
+              >
+                FRONT
+              </button>
+              <button
+                onClick={() => setCameraPreset('SIDE')}
+                className={`w-9 h-6 rounded-sm border transition-colors flex items-center justify-center ${
+                  cameraView === 'SIDE'
+                    ? 'bg-[#F59E0B] text-[#09090B] border-[#F59E0B]'
+                    : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A] hover:text-[#F4F4F5] hover:border-[#3F3F46]'
+                }`}
+                title="Right Side View (YZ Plane) [4]"
+              >
+                SIDE
+              </button>
+            </div>
+
+            {/* Quick Zoom-to-Fit Action */}
+            <button
+              onClick={handleResetCamera}
+              className="w-full py-0.5 rounded-sm bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#71717A] hover:text-[#F4F4F5] text-[8.5px] flex items-center justify-center gap-1 transition-colors"
+              title="Zoom to Fit Viewport [F]"
+            >
+              <span>FIT</span>
+              <kbd className="text-[8px] text-[#A1A1AA]">[F]</kbd>
+            </button>
+          </div>
+
+          {/* Coordinate Position Readout */}
+          <div className="bg-[#121215]/90 border border-[#27272A] rounded-sm px-2 py-1 text-[9px] text-[#71717A] flex flex-col items-end gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[#EF4444]">X: +120.0</span>
+              <span className="text-[#10B981]">Y: +045.5</span>
+              <span className="text-[#06B6D4]">Z: +000.0</span>
+            </div>
+            <span className="text-[8px] text-[#52525B]">PERSPECTIVE • FOV 45°</span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="absolute top-4 right-4 pointer-events-none flex flex-col items-end gap-1 font-mono text-[9px] text-[#71717A] z-10">
+          <span>CIRCUIT EDA VIEW</span>
+          <div className="flex items-center gap-1.5 pt-1">
+            <span className="w-2 h-[2px] bg-[#06B6D4]" />
+            <span className="w-2 h-[2px] bg-[#F59E0B]" />
+          </div>
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
           2. FLOATING CAD HUD TOOLBAR (TOP-LEFT)
